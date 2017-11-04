@@ -1,4 +1,7 @@
 
+use std::path::Path;
+use std::os::unix::ffi::OsStrExt;
+
 use sys::*;
 use value::{JlValue, Value};
 use function::Function;
@@ -17,6 +20,8 @@ pub struct Julia {
 
 impl Julia {
     pub fn new() -> Julia {
+        assert!(!Julia::is_initialized(), "Julia already initialized");
+
         unsafe {
             jl_init();
         }
@@ -34,6 +39,17 @@ impl Julia {
             base: base,
             top: top,
         }
+    }
+
+    pub fn is_initialized() -> bool {
+        unsafe { jl_is_initialized() != 0 }
+    }
+
+    pub fn exit(&self, status: i32) -> ! {
+        unsafe {
+            jl_exit(status);
+        }
+        unreachable!()
     }
 
     pub fn main(&self) -> &Module {
@@ -54,13 +70,6 @@ impl Julia {
 
     pub fn top(&self) -> &Module {
         &self.top
-    }
-
-    pub fn eval_string<S: AsCString>(&mut self, string: S) -> Result<Value> {
-        let string = string.as_cstring();
-
-        let ret = unsafe { jl_eval_string(string.as_ptr()) };
-        Value::new(ret).map_err(|_| Error::EvalError)
     }
 
     pub fn get_global<S: AsCString>(&self, module: &Module, sym: S) -> Result<Value> {
@@ -97,6 +106,63 @@ impl Julia {
         self.get_global(module, sym.as_cstring()).and_then(
             Function::from_value,
         )
+    }
+
+    // TODO: AsCString
+    pub fn parse_input_line<P: AsRef<Path>>(string: &str, filename: P) -> Result<Value> {
+        let len = string.len();
+        let string = string.as_cstring().as_ptr();
+
+        // TODO: this works only on windows
+        // Also, bad hack
+        let filename = filename.as_ref().as_os_str().as_bytes();
+        let filename_len = filename.len();
+        let filename = filename.as_ptr() as *mut _;
+
+        let raw = unsafe {
+            jl_parse_input_line(string, len, filename, filename_len)
+        };
+
+        Value::new(raw)
+    }
+
+    pub fn parse_string(string: &str) -> Result<Value> {
+        let len = string.len();
+        let string = string.as_cstring().as_ptr();
+
+        let raw = unsafe {
+            jl_parse_string(string, len, 0, 0)
+        };
+
+        Value::new(raw)
+    }
+
+    pub fn parse_depth_warn(warn: usize) {
+        unsafe {
+            jl_parse_depwarn(warn as i32);
+        }
+    }
+
+    pub fn load_file_string<P: AsRef<Path>>(string: &str, filename: P) -> Result<Value> {
+        let len = string.len();
+        let string = string.as_cstring().as_ptr();
+
+        // TODO: this works only on windows
+        // Also, bad hack
+        let filename = filename.as_ref().as_os_str().as_bytes().as_ptr() as *mut _;
+
+        let raw = unsafe {
+            jl_load_file_string(string, len, filename)
+        };
+
+        Value::new(raw)
+    }
+
+    pub fn eval_string<S: AsCString>(&mut self, string: S) -> Result<Value> {
+        let string = string.as_cstring().as_ptr();
+
+        let ret = unsafe { jl_eval_string(string) };
+        Value::new(ret).map_err(|_| Error::EvalError)
     }
 }
 
