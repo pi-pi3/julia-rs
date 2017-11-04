@@ -316,20 +316,20 @@ macro_rules! box_simple {
     ($t1:ty => $t2:ident) => {
         box_simple!($t1 => $t2, |val| { val } );
     };
-    ($t1:ident, |$v:ident| $b:block) => {
-        box_simple!($t1 => $t1, |$v| $b);
+    ($t1:ident, |$v:ident| $fn:expr) => {
+        box_simple!($t1 => $t1, |$v| $fn);
     };
-    ($t1:ident => $t2:ident, |$v:ident| $b:block) => {
+    ($t1:ident => $t2:ident, |$v:ident| $fn:expr) => {
         impl From<$t1> for Value {
             fn from($v: $t1) -> Value {
-                unsafe { Value::new_unchecked(concat_idents!(jl_box_, $t2)($b)) }
+                unsafe { Value::new_unchecked(concat_idents!(jl_box_, $t2)($fn)) }
             }
         }
     };
-    ($t1:ty => $t2:ident, |$v:ident| $b:block) => {
+    ($t1:ty => $t2:ident, |$v:ident| $fn:expr) => {
         impl From<$t1> for Value {
             fn from($v: $t1) -> Value {
-                unsafe { Value::new_unchecked(concat_idents!(jl_box_, $t2)($b)) }
+                unsafe { Value::new_unchecked(concat_idents!(jl_box_, $t2)($fn)) }
             }
         }
     }
@@ -342,7 +342,7 @@ macro_rules! unbox_simple {
     ($t1:ident => $t2:ty) => {
         unbox_simple!($t1 => $t2, |v| { v } );
     };
-    ($t1:ident => $t2:ty, |$v:ident| $b:block) => {
+    ($t1:ident => $t2:ty, |$v:ident| $fn:expr) => {
         impl<'a> TryFrom<&'a Value> for $t2 {
             type Error = Error;
             fn try_from(val: &Value) -> Result<$t2> {
@@ -357,7 +357,7 @@ macro_rules! unbox_simple {
                         .map(|v| unsafe { concat_idents!(jl_unbox_, $t1)(v) })
                         .map_err(From::from);
                     match ret {
-                        Ok($v) => Ok($b),
+                        Ok($v) => Ok($fn),
                         Err(x) => Err(x),
                     }
                 } else {
@@ -384,8 +384,8 @@ box_simple!(usize => ulong);
 box_simple!(f32 => float32);
 box_simple!(f64 => float64);
 
-unbox_simple!(bool => bool, |val| { val != 0 });
-unbox_simple!(uint32 => char, |val| { char::try_from(val)? });
+unbox_simple!(bool => bool, |val| val != 0);
+unbox_simple!(uint32 => char, |val| char::try_from(val)?);
 
 unbox_simple!(int8 => i8);
 unbox_simple!(int16 => i16);
