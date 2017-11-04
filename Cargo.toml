@@ -1,0 +1,11 @@
+[package]
+name = "julia"
+version = "0.1.0"
+authors = ["Szymon Walter <walter.szymon.98@gmail.com>"]
+
+[dependencies]
+libc = "0.2"
+smallvec = "0.5"
+
+[dependencies.julia-sys]
+path = "julia-sys"

@@ -1,0 +1,10 @@
+[package]
+name = "julia-sys"
+version = "0.1.0"
+authors = ["Szymon Walter <walter.szymon.98@gmail.com>"]
+
+[build-dependencies]
+bindgen = "0.26.3"
+
+[dependencies]
+libc = "0.2"
