@@ -1,9 +1,9 @@
 
 use smallvec::SmallVec;
 
-use ::sys::*;
-use ::value::{JlValue, Value};
-use ::error::{Result, Error};
+use sys::*;
+use value::{JlValue, Value};
+use error::{Result, Error};
 
 jlvalues! {
     pub struct Function(jl_function_t);
@@ -11,7 +11,9 @@ jlvalues! {
 
 impl Function {
     pub fn call<'a, I>(&self, args: I) -> Result<Value>
-        where I: IntoIterator<Item=&'a Value> {
+    where
+        I: IntoIterator<Item = &'a Value>,
+    {
         let mut argv = SmallVec::<[*mut jl_value_t; 8]>::new();
         for arg in args {
             argv.push(arg.lock()?);

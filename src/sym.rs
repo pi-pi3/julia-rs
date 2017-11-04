@@ -1,8 +1,8 @@
 
-use ::sys::*;
-use ::error::{Result, Error};
-use ::string::AsCString;
-use ::value::JlValue;
+use sys::*;
+use error::{Result, Error};
+use string::AsCString;
+use value::JlValue;
 
 jlvalues! {
     pub struct Symbol(jl_sym_t);

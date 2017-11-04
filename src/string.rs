@@ -34,9 +34,7 @@ impl<'a> AsCString for &'a CStr {
 impl AsCString for String {
     fn as_cstring(mut self) -> CString {
         self.push('\0');
-        unsafe {
-            CString::from_vec_unchecked(self.into_bytes())
-        }
+        unsafe { CString::from_vec_unchecked(self.into_bytes()) }
     }
 }
 
@@ -50,8 +48,6 @@ impl<'a> AsCString for &'a str {
     fn as_cstring(self) -> CString {
         let mut bytes = self.as_bytes().to_vec();
         bytes.push(0);
-        unsafe {
-            CString::from_vec_unchecked(bytes)
-        }
+        unsafe { CString::from_vec_unchecked(bytes) }
     }
 }

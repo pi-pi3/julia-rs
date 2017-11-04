@@ -1,11 +1,13 @@
 
 use std::convert::TryFrom;
 
-use ::sys::*;
-use ::error::{Result, Error};
+use sys::*;
+use error::{Result, Error};
 
 pub trait JlValue<T>
-    where Self: Sized {
+where
+    Self: Sized,
+{
     unsafe fn new_unchecked(_inner: *mut T) -> Self;
     fn new(_inner: *mut T) -> Result<Self>;
     fn lock(&self) -> Result<*mut T>;
@@ -38,7 +40,7 @@ macro_rules! simple_jlvalue {
                             ),
                 }
             }
-        
+
             fn new(_inner: *mut $type) -> $crate::error::Result<$name> {
                 if _inner.is_null() {
                     Err($crate::error::Error::NullValue)
@@ -48,14 +50,14 @@ macro_rules! simple_jlvalue {
                     }
                 }
             }
-        
+
             fn lock(&self) -> $crate::error::Result<*mut $type> {
                 self._inner
                     .lock()
                     .map(|ptr| ptr.as_ptr())
                     .map_err(From::from)
             }
-        
+
             fn into_inner(self) -> $crate::error::Result<*mut $type> {
                 ::std::rc::Rc::try_unwrap(self._inner)?
                     .into_inner()
@@ -81,9 +83,7 @@ jlvalues! {
 
 impl Value {
     pub fn nothing() -> Value {
-        unsafe {
-            Value::new_unchecked(jl_nothing)
-        }
+        unsafe { Value::new_unchecked(jl_nothing) }
     }
 
     pub fn expand(&self) -> Result<Value> {
@@ -92,84 +92,212 @@ impl Value {
     }
 
     pub fn map<T, F>(&self, f: F) -> Result<T>
-        where F: FnOnce(*mut jl_value_t) -> T {
+    where
+        F: FnOnce(*mut jl_value_t) -> T,
+    {
         self.lock().map(f)
     }
 
     pub fn map_or<T, F>(&self, f: F, optb: T) -> T
-        where F: FnOnce(*mut jl_value_t) -> T {
+    where
+        F: FnOnce(*mut jl_value_t) -> T,
+    {
         self.lock().map(f).unwrap_or(optb)
     }
 
     pub fn map_or_else<T, F, O>(&self, f: F, op: O) -> T
-        where F: FnOnce(*mut jl_value_t) -> T,
-              O: FnOnce(Error) -> T {
+    where
+        F: FnOnce(*mut jl_value_t) -> T,
+        O: FnOnce(Error) -> T,
+    {
         self.lock().map(f).unwrap_or_else(op)
     }
 
-    pub fn is_nothing(&self) -> bool { self.map_or(|v| unsafe { jl_is_nothing(v) }, false) }
-    pub fn is_tuple(&self) -> bool { self.map_or(|v| unsafe { jl_is_tuple(v) }, false) }
-    pub fn is_svec(&self) -> bool { self.map_or(|v| unsafe { jl_is_svec(v) }, false) }
-    pub fn is_simplevector(&self) -> bool { self.map_or(|v| unsafe { jl_is_simplevector(v) }, false) }
-    pub fn is_datatype(&self) -> bool { self.map_or(|v| unsafe { jl_is_datatype(v) }, false) }
-    pub fn is_mutable(&self) -> bool { self.map_or(|v| unsafe { jl_is_mutable(v) }, false) }
-    pub fn is_mutable_datatype(&self) -> bool { self.map_or(|v| unsafe { jl_is_mutable_datatype(v) }, false) }
-    pub fn is_immutable(&self) -> bool { self.map_or(|v| unsafe { jl_is_immutable(v) }, false) }
-    pub fn is_immutable_datatype(&self) -> bool { self.map_or(|v| unsafe { jl_is_immutable_datatype(v) }, false) }
-    pub fn is_uniontype(&self) -> bool { self.map_or(|v| unsafe { jl_is_uniontype(v) }, false) }
-    pub fn is_typevar(&self) -> bool { self.map_or(|v| unsafe { jl_is_typevar(v) }, false) }
-    pub fn is_unionall(&self) -> bool { self.map_or(|v| unsafe { jl_is_unionall(v) }, false) }
-    pub fn is_typename(&self) -> bool { self.map_or(|v| unsafe { jl_is_typename(v) }, false) }
-    pub fn is_int8(&self) -> bool { self.map_or(|v| unsafe { jl_is_int8(v) }, false) }
-    pub fn is_int16(&self) -> bool { self.map_or(|v| unsafe { jl_is_int16(v) }, false) }
-    pub fn is_int32(&self) -> bool { self.map_or(|v| unsafe { jl_is_int32(v) }, false) }
-    pub fn is_int64(&self) -> bool { self.map_or(|v| unsafe { jl_is_int64(v) }, false) }
-    pub fn is_long(&self) -> bool { self.map_or(|v| unsafe { jl_is_long(v) }, false) }
-    pub fn is_uint8(&self) -> bool { self.map_or(|v| unsafe { jl_is_uint8(v) }, false) }
-    pub fn is_uint16(&self) -> bool { self.map_or(|v| unsafe { jl_is_uint16(v) }, false) }
-    pub fn is_uint32(&self) -> bool { self.map_or(|v| unsafe { jl_is_uint32(v) }, false) }
-    pub fn is_uint64(&self) -> bool { self.map_or(|v| unsafe { jl_is_uint64(v) }, false) }
-    pub fn is_ulong(&self) -> bool { self.map_or(|v| unsafe { jl_is_ulong(v) }, false) }
-    pub fn is_float16(&self) -> bool { self.map_or(|v| unsafe { jl_is_float16(v) }, false) }
-    pub fn is_float32(&self) -> bool { self.map_or(|v| unsafe { jl_is_float32(v) }, false) }
-    pub fn is_float64(&self) -> bool { self.map_or(|v| unsafe { jl_is_float64(v) }, false) }
-    pub fn is_bool(&self) -> bool { self.map_or(|v| unsafe { jl_is_bool(v) }, false) }
-    pub fn is_symbol(&self) -> bool { self.map_or(|v| unsafe { jl_is_symbol(v) }, false) }
-    pub fn is_ssavalue(&self) -> bool { self.map_or(|v| unsafe { jl_is_ssavalue(v) }, false) }
-    pub fn is_slot(&self) -> bool { self.map_or(|v| unsafe { jl_is_slot(v) }, false) }
-    pub fn is_expr(&self) -> bool { self.map_or(|v| unsafe { jl_is_expr(v) }, false) }
-    pub fn is_globalref(&self) -> bool { self.map_or(|v| unsafe { jl_is_globalref(v) }, false) }
-    pub fn is_labelnode(&self) -> bool { self.map_or(|v| unsafe { jl_is_labelnode(v) }, false) }
-    pub fn is_gotonode(&self) -> bool { self.map_or(|v| unsafe { jl_is_gotonode(v) }, false) }
-    pub fn is_quotenode(&self) -> bool { self.map_or(|v| unsafe { jl_is_quotenode(v) }, false) }
-    pub fn is_newvarnode(&self) -> bool { self.map_or(|v| unsafe { jl_is_newvarnode(v) }, false) }
-    pub fn is_linenode(&self) -> bool { self.map_or(|v| unsafe { jl_is_linenode(v) }, false) }
-    pub fn is_method_instance(&self) -> bool { self.map_or(|v| unsafe { jl_is_method_instance(v) }, false) }
-    pub fn is_code_info(&self) -> bool { self.map_or(|v| unsafe { jl_is_code_info(v) }, false) }
-    pub fn is_method(&self) -> bool { self.map_or(|v| unsafe { jl_is_method(v) }, false) }
-    pub fn is_module(&self) -> bool { self.map_or(|v| unsafe { jl_is_module(v) }, false) }
-    pub fn is_mtable(&self) -> bool { self.map_or(|v| unsafe { jl_is_mtable(v) }, false) }
-    pub fn is_task(&self) -> bool { self.map_or(|v| unsafe { jl_is_task(v) }, false) }
-    pub fn is_string(&self) -> bool { self.map_or(|v| unsafe { jl_is_string(v) }, false) }
-    pub fn is_cpointer(&self) -> bool { self.map_or(|v| unsafe { jl_is_cpointer(v) }, false) }
-    pub fn is_pointer(&self) -> bool { self.map_or(|v| unsafe { jl_is_pointer(v) }, false) }
-    pub fn is_intrinsic(&self) -> bool { self.map_or(|v| unsafe { jl_is_intrinsic(v) }, false) }
+    pub fn is_nothing(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_nothing(v) }, false)
+    }
+    pub fn is_tuple(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_tuple(v) }, false)
+    }
+    pub fn is_svec(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_svec(v) }, false)
+    }
+    pub fn is_simplevector(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_simplevector(v) }, false)
+    }
+    pub fn is_datatype(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_datatype(v) }, false)
+    }
+    pub fn is_mutable(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_mutable(v) }, false)
+    }
+    pub fn is_mutable_datatype(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_mutable_datatype(v) }, false)
+    }
+    pub fn is_immutable(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_immutable(v) }, false)
+    }
+    pub fn is_immutable_datatype(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_immutable_datatype(v) }, false)
+    }
+    pub fn is_uniontype(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_uniontype(v) }, false)
+    }
+    pub fn is_typevar(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_typevar(v) }, false)
+    }
+    pub fn is_unionall(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_unionall(v) }, false)
+    }
+    pub fn is_typename(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_typename(v) }, false)
+    }
+    pub fn is_int8(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_int8(v) }, false)
+    }
+    pub fn is_int16(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_int16(v) }, false)
+    }
+    pub fn is_int32(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_int32(v) }, false)
+    }
+    pub fn is_int64(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_int64(v) }, false)
+    }
+    pub fn is_long(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_long(v) }, false)
+    }
+    pub fn is_uint8(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_uint8(v) }, false)
+    }
+    pub fn is_uint16(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_uint16(v) }, false)
+    }
+    pub fn is_uint32(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_uint32(v) }, false)
+    }
+    pub fn is_uint64(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_uint64(v) }, false)
+    }
+    pub fn is_ulong(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_ulong(v) }, false)
+    }
+    pub fn is_float16(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_float16(v) }, false)
+    }
+    pub fn is_float32(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_float32(v) }, false)
+    }
+    pub fn is_float64(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_float64(v) }, false)
+    }
+    pub fn is_bool(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_bool(v) }, false)
+    }
+    pub fn is_symbol(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_symbol(v) }, false)
+    }
+    pub fn is_ssavalue(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_ssavalue(v) }, false)
+    }
+    pub fn is_slot(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_slot(v) }, false)
+    }
+    pub fn is_expr(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_expr(v) }, false)
+    }
+    pub fn is_globalref(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_globalref(v) }, false)
+    }
+    pub fn is_labelnode(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_labelnode(v) }, false)
+    }
+    pub fn is_gotonode(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_gotonode(v) }, false)
+    }
+    pub fn is_quotenode(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_quotenode(v) }, false)
+    }
+    pub fn is_newvarnode(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_newvarnode(v) }, false)
+    }
+    pub fn is_linenode(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_linenode(v) }, false)
+    }
+    pub fn is_method_instance(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_method_instance(v) }, false)
+    }
+    pub fn is_code_info(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_code_info(v) }, false)
+    }
+    pub fn is_method(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_method(v) }, false)
+    }
+    pub fn is_module(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_module(v) }, false)
+    }
+    pub fn is_mtable(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_mtable(v) }, false)
+    }
+    pub fn is_task(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_task(v) }, false)
+    }
+    pub fn is_string(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_string(v) }, false)
+    }
+    pub fn is_cpointer(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_cpointer(v) }, false)
+    }
+    pub fn is_pointer(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_pointer(v) }, false)
+    }
+    pub fn is_intrinsic(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_intrinsic(v) }, false)
+    }
     // pub fn is_function(&self) -> bool { true
 
-    pub fn is_kind(&self) -> bool { self.map_or(|v| unsafe { jl_is_kind(v) }, false) }
-    pub fn is_type(&self) -> bool { self.map_or(|v| unsafe { jl_is_type(v) }, false) }
-    pub fn is_primitivetype(&self) -> bool { self.map_or(|v| unsafe { jl_is_primitivetype(v) }, false) }
-    pub fn is_structtype(&self) -> bool { self.map_or(|v| unsafe { jl_is_structtype(v) }, false) }
-    pub fn isbits(&self) -> bool { self.map_or(|v| unsafe { jl_isbits(v) }, false) }
-    pub fn is_abstracttype(&self) -> bool { self.map_or(|v| unsafe { jl_is_abstracttype(v) }, false) }
-    pub fn is_array_type(&self) -> bool { self.map_or(|v| unsafe { jl_is_array_type(v) }, false) }
-    pub fn is_array(&self) -> bool { self.map_or(|v| unsafe { jl_is_array(v) }, false) }
-    pub fn is_cpointer_type(&self) -> bool { self.map_or(|v| unsafe { jl_is_cpointer_type(v) }, false) }
-    pub fn is_abstract_ref_type(&self) -> bool { self.map_or(|v| unsafe { jl_is_abstract_ref_type(v) }, false) }
-    pub fn is_tuple_type(&self) -> bool { self.map_or(|v| unsafe { jl_is_tuple_type(v) }, false) }
-    pub fn is_vecelement_type(&self) -> bool { self.map_or(|v| unsafe { jl_is_vecelement_type(v) }, false) }
-    pub fn is_type_type(&self) -> bool { self.map_or(|v| unsafe { jl_is_type_type(v) }, false) }
-    pub fn is_vararg_type(&self) -> bool { self.map_or(|v| unsafe { jl_is_vararg_type(v) }, false) }
+    pub fn is_kind(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_kind(v) }, false)
+    }
+    pub fn is_type(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_type(v) }, false)
+    }
+    pub fn is_primitivetype(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_primitivetype(v) }, false)
+    }
+    pub fn is_structtype(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_structtype(v) }, false)
+    }
+    pub fn isbits(&self) -> bool {
+        self.map_or(|v| unsafe { jl_isbits(v) }, false)
+    }
+    pub fn is_abstracttype(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_abstracttype(v) }, false)
+    }
+    pub fn is_array_type(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_array_type(v) }, false)
+    }
+    pub fn is_array(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_array(v) }, false)
+    }
+    pub fn is_cpointer_type(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_cpointer_type(v) }, false)
+    }
+    pub fn is_abstract_ref_type(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_abstract_ref_type(v) }, false)
+    }
+    pub fn is_tuple_type(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_tuple_type(v) }, false)
+    }
+    pub fn is_vecelement_type(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_vecelement_type(v) }, false)
+    }
+    pub fn is_type_type(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_type_type(v) }, false)
+    }
+    pub fn is_vararg_type(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_vararg_type(v) }, false)
+    }
 }
 
 impl Default for Value {
@@ -240,8 +368,8 @@ macro_rules! unbox_simple {
     }
 }
 
-box_simple!(bool, |val| { val as i8 });
-box_simple!(char, |val| { val as u32 });
+box_simple!(bool, |val| val as i8);
+box_simple!(char, |val| val as u32);
 
 box_simple!(i8 => int8);
 box_simple!(i16 => int16);

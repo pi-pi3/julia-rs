@@ -1,11 +1,11 @@
 
-use ::sys::*;
-use ::value::{JlValue, Value};
-use ::function::Function;
-use ::sym::Symbol;
-use ::module::Module;
-use ::error::{Result, Error};
-use ::string::AsCString;
+use sys::*;
+use value::{JlValue, Value};
+use function::Function;
+use sym::Symbol;
+use module::Module;
+use error::{Result, Error};
+use string::AsCString;
 
 pub struct Julia {
     main: Module,
@@ -94,13 +94,17 @@ impl Julia {
     }
 
     pub fn get_function<S: AsCString>(&self, module: &Module, sym: S) -> Result<Function> {
-        self.get_global(module, sym.as_cstring()).and_then(Function::from_value)
+        self.get_global(module, sym.as_cstring()).and_then(
+            Function::from_value,
+        )
     }
 }
 
 impl Drop for Julia {
     fn drop(&mut self) {
-        unsafe { jl_atexit_hook(0); }
+        unsafe {
+            jl_atexit_hook(0);
+        }
     }
 }
 
