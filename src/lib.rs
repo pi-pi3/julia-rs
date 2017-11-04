@@ -20,12 +20,14 @@ pub mod value;
 pub mod function;
 pub mod sym;
 pub mod module;
+pub mod datatype;
 
 pub use julia::Julia;
 pub use value::Value;
 pub use function::Function;
 pub use sym::Symbol;
 pub use module::Module;
+pub use datatype::Datatype;
 
 #[cfg(test)]
 mod tests {

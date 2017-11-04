@@ -11,6 +11,7 @@ use smallvec::SmallVec;
 use sys::*;
 use value::{Value, JlValue};
 use sym::Symbol;
+use datatype::Datatype;
 use string::AsCString;
 
 pub type Result<T> = result::Result<T, Error>;
@@ -65,19 +66,18 @@ pub fn error_format(args: fmt::Arguments) {
     error(fmt::format(args).as_cstring());
 }
 
-// TODO
-/*
-pub fn exception<S: AsCString>(ty: &Datatype, string: S) {
+pub fn exception<S: AsCString>(ty: &Datatype, string: S) -> Result<()> {
+    let ty = ty.lock()?;
     let string = string.as_cstring().as_ptr();
     unsafe {
-        jl_exceptionf(string.as_cstring().as_ptr());
+        jl_exceptionf(ty, string);
     }
+    Ok(())
 }
 
-pub fn exception_format(ty: &Datatype, args: fmt::Arguments) {
-    exception(fmt::format(args).as_cstring());
+pub fn exception_format(ty: &Datatype, args: fmt::Arguments) -> Result<()> {
+    exception(ty, fmt::format(args).as_cstring())
 }
-*/
 
 pub fn too_few_args<S: AsCString>(fname: S, min: usize) {
     let fname = fname.as_cstring().as_ptr();
