@@ -12,6 +12,7 @@ extern crate julia_sys;
 
 pub mod sys;
 pub mod error;
+pub mod exception;
 pub mod string;
 
 pub mod julia;
