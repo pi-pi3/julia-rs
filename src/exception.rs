@@ -1,5 +1,7 @@
 
 use std::fmt;
+use std::ops::Deref;
+use std::ops::DerefMut;
 
 use smallvec::SmallVec;
 
@@ -85,6 +87,66 @@ impl Exception {
         Ok(ex)
     }
 
+    pub fn inner_ref(&self) -> &Value {
+        match *self {
+            Exception::Argument(ref value) => value,
+            Exception::Bounds(ref value) => value,
+            Exception::Composite(ref value) => value,
+            Exception::Divide(ref value) => value,
+            Exception::Domain(ref value) => value,
+            Exception::EOF(ref value) => value,
+            Exception::Error(ref value) => value,
+            Exception::Inexact(ref value) => value,
+            Exception::Init(ref value) => value,
+            Exception::Interrupt(ref value) => value,
+            Exception::InvalidState(ref value) => value,
+            Exception::Key(ref value) => value,
+            Exception::Load(ref value) => value,
+            Exception::OutOfMemory(ref value) => value,
+            Exception::ReadOnlyMemory(ref value) => value,
+            Exception::Remote(ref value) => value,
+            Exception::Method(ref value) => value,
+            Exception::Overflow(ref value) => value,
+            Exception::Parse(ref value) => value,
+            Exception::System(ref value) => value,
+            Exception::Type(ref value) => value,
+            Exception::UndefRef(ref value) => value,
+            Exception::UndefVar(ref value) => value,
+            Exception::Unicode(ref value) => value,
+            Exception::Unknown(ref value) => value,
+        }
+    }
+
+    pub fn inner_mut(&mut self) -> &mut Value {
+        match *self {
+            Exception::Argument(ref mut value) => value,
+            Exception::Bounds(ref mut value) => value,
+            Exception::Composite(ref mut value) => value,
+            Exception::Divide(ref mut value) => value,
+            Exception::Domain(ref mut value) => value,
+            Exception::EOF(ref mut value) => value,
+            Exception::Error(ref mut value) => value,
+            Exception::Inexact(ref mut value) => value,
+            Exception::Init(ref mut value) => value,
+            Exception::Interrupt(ref mut value) => value,
+            Exception::InvalidState(ref mut value) => value,
+            Exception::Key(ref mut value) => value,
+            Exception::Load(ref mut value) => value,
+            Exception::OutOfMemory(ref mut value) => value,
+            Exception::ReadOnlyMemory(ref mut value) => value,
+            Exception::Remote(ref mut value) => value,
+            Exception::Method(ref mut value) => value,
+            Exception::Overflow(ref mut value) => value,
+            Exception::Parse(ref mut value) => value,
+            Exception::System(ref mut value) => value,
+            Exception::Type(ref mut value) => value,
+            Exception::UndefRef(ref mut value) => value,
+            Exception::UndefVar(ref mut value) => value,
+            Exception::Unicode(ref mut value) => value,
+            Exception::Unknown(ref mut value) => value,
+        }
+    }
+
     pub fn into_inner(self) -> Value {
         match self {
             Exception::Argument(value) => value,
@@ -116,8 +178,29 @@ impl Exception {
     }
 }
 
+impl Deref for Exception {
+    type Target = Value;
+    fn deref(&self) -> &Value {
+        self.inner_ref()
+    }
+}
+
+impl DerefMut for Exception {
+    fn deref_mut(&mut self) -> &mut Value {
+        self.inner_mut()
+    }
+}
+
+impl fmt::Debug for Exception {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let typename = self.typename().map_err(|_| fmt::Error)?;
+        write!(f, "{}", typename)
+    }
+}
+
 pub fn error<S: AsCString>(string: S) {
-    let string = string.as_cstring().as_ptr();
+    let string = string.as_cstring();
+    let string = string.as_ptr();
     unsafe {
         jl_error(string);
     }
@@ -129,7 +212,8 @@ pub fn error_format(args: fmt::Arguments) {
 
 pub fn exception<S: AsCString>(ty: &Datatype, string: S) -> Result<()> {
     let ty = ty.lock()?;
-    let string = string.as_cstring().as_ptr();
+    let string = string.as_cstring();
+    let string = string.as_ptr();
     unsafe {
         jl_exceptionf(ty, string);
     }
@@ -141,21 +225,24 @@ pub fn exception_format(ty: &Datatype, args: fmt::Arguments) -> Result<()> {
 }
 
 pub fn too_few_args<S: AsCString>(fname: S, min: usize) {
-    let fname = fname.as_cstring().as_ptr();
+    let fname = fname.as_cstring();
+    let fname = fname.as_ptr();
     unsafe {
         jl_too_few_args(fname, min as i32);
     }
 }
 
 pub fn too_many_args<S: AsCString>(fname: S, max: usize) {
-    let fname = fname.as_cstring().as_ptr();
+    let fname = fname.as_cstring();
+    let fname = fname.as_ptr();
     unsafe {
         jl_too_many_args(fname, max as i32);
     }
 }
 
 pub fn type_error<S: AsCString>(fname: S, expected: &Value, got: &Value) -> Result<()> {
-    let fname = fname.as_cstring().as_ptr();
+    let fname = fname.as_cstring();
+    let fname = fname.as_ptr();
     let expected = expected.lock()?;
     let got = got.lock()?;
     unsafe {
@@ -165,8 +252,10 @@ pub fn type_error<S: AsCString>(fname: S, expected: &Value, got: &Value) -> Resu
 }
 
 pub fn type_error_rt<S: AsCString>(fname: S, context: S, ty: &Value, got: &Value) -> Result<()> {
-    let fname = fname.as_cstring().as_ptr();
-    let context = context.as_cstring().as_ptr();
+    let fname = fname.as_cstring();
+    let fname = fname.as_ptr();
+    let context = context.as_cstring();
+    let context = context.as_ptr();
     let ty = ty.lock()?;
     let got = got.lock()?;
     unsafe {
