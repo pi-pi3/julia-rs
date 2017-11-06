@@ -107,9 +107,7 @@ impl Value {
 
     pub fn expand(&self) -> Result<Value> {
         let raw = self.lock()?;
-        let raw = unsafe {
-            jl_call!(jl_expand, raw)
-        };
+        let raw = unsafe { jl_call!(jl_expand, raw) };
         Value::new(raw)
     }
 

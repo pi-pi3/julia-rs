@@ -61,9 +61,7 @@ impl Julia {
     }
 
     pub fn is_initialized() -> bool {
-        unsafe {
-            jl_is_initialized() != 0
-        }
+        unsafe { jl_is_initialized() != 0 }
     }
 
     pub fn exit(&self, status: i32) -> ! {
