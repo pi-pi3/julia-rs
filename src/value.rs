@@ -12,6 +12,7 @@ where
     fn new(_inner: *mut T) -> Result<Self>;
     fn lock(&self) -> Result<*mut T>;
     fn into_inner(self) -> Result<*mut T>;
+    fn typename(&self) -> Result<String>;
 
     fn from_value<U, A: JlValue<U>>(val: A) -> Result<Self> {
         let raw = val.into_inner()? as *mut T;
@@ -26,6 +27,7 @@ where
 
 macro_rules! simple_jlvalue {
     ($name:ident, $type:ty) => {
+        #[derive(Clone)]
         pub struct $name {
             _inner: ::std::rc::Rc<::std::sync::Mutex<::std::ptr::Unique<$type>>>,
         }
@@ -63,6 +65,23 @@ macro_rules! simple_jlvalue {
                     .into_inner()
                     .map(::std::ptr::Unique::as_ptr)
                     .map_err(From::from)
+            }
+
+            fn typename(&self) -> $crate::error::Result<String> {
+                use $crate::string::TryAsString;
+                let result = self._inner
+                    .lock()
+                    .map(|ptr| {
+                        let t = unsafe {
+                            $crate::sys::jl_typeof_str(ptr.as_ptr() as *mut $crate::sys::jl_value_t)
+                        };
+                        t.try_as_string()
+                    })
+                    .map_err(From::from);
+                match result {
+                    Ok(x) => x,
+                    Err(err) => Err(err),
+                }
             }
         }
     }
