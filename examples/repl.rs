@@ -7,7 +7,7 @@ use julia::{Julia, Value, Function};
 use julia::value::JlValue;
 
 fn main() {
-    let mut jl = Julia::new();
+    let mut jl = Julia::new().unwrap();
 
     let println = jl.eval_string("println").unwrap(); // TODO: get_function
     let println = Function::from_value(println).unwrap();

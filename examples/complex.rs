@@ -9,7 +9,7 @@ use julia::{Julia, Value, Function};
 use julia::value::JlValue;
 
 fn main() {
-    let mut jl = Julia::new();
+    let mut jl = Julia::new().unwrap();
 
     let result = jl.eval_string("f(x) = x * 2 - 1").unwrap();
     let f = Function::from_value(result).unwrap();

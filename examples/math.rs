@@ -8,7 +8,7 @@ use std::convert::TryFrom;
 use julia::{Julia, Value};
 
 fn main() {
-    let jl = Julia::new();
+    let jl = Julia::new().unwrap();
 
     let sqrt = jl.get_function(jl.base(), "sqrt").unwrap();
     let x = 3.0;
