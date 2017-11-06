@@ -10,8 +10,7 @@ use exception::Exception;
 
 pub type Result<T> = result::Result<T, Error>;
 
-// TODO: Debug
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Error {
     UnhandledException(Exception),
     CStrError,

@@ -10,7 +10,8 @@ jlvalues! {
 
 impl Symbol {
     pub fn with_name<S: AsCString>(name: S) -> Result<Symbol> {
-        let raw = unsafe { jl_symbol(name.as_cstring().as_ptr()) };
+        let name = name.as_cstring();
+        let raw = unsafe { jl_symbol(name.as_ptr()) };
         Symbol::new(raw).map_err(|_| Error::InvalidSymbol)
     }
 }
