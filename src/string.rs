@@ -1,6 +1,8 @@
 
 use std::ffi::{CStr, CString};
 
+use error::{Result, Error};
+
 #[macro_export]
 macro_rules! cstr {
     ( $( $s:expr ),*) => {
@@ -17,6 +19,10 @@ macro_rules! cstr {
 
 pub trait AsCString {
     fn as_cstring(self) -> CString;
+}
+
+pub trait TryAsString {
+    fn try_as_string(self) -> Result<String>;
 }
 
 impl AsCString for CString {
@@ -49,5 +55,26 @@ impl<'a> AsCString for &'a str {
         let mut bytes = self.as_bytes().to_vec();
         bytes.push(0);
         unsafe { CString::from_vec_unchecked(bytes) }
+    }
+}
+
+// raw C string pointer
+impl TryAsString for *const i8 {
+    fn try_as_string(self) -> Result<String> {
+        if self.is_null() {
+            return Err(Error::NullPointer);
+        }
+
+        let mut raw = self as *const u8;
+        let mut vec = vec![];
+
+        unsafe {
+            while *raw != 0 {
+                vec.push(*raw);
+                raw = raw.offset(1);
+            }
+        }
+
+        String::from_utf8(vec).map_err(From::from)
     }
 }
