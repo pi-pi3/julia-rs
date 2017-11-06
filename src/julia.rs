@@ -119,9 +119,7 @@ impl Julia {
         let filename_len = filename.len();
         let filename = filename.as_ptr() as *mut _;
 
-        let raw = unsafe {
-            jl_parse_input_line(string, len, filename, filename_len)
-        };
+        let raw = unsafe { jl_parse_input_line(string, len, filename, filename_len) };
 
         Value::new(raw)
     }
@@ -130,9 +128,7 @@ impl Julia {
         let len = string.len();
         let string = string.as_cstring().as_ptr();
 
-        let raw = unsafe {
-            jl_parse_string(string, len, 0, 0)
-        };
+        let raw = unsafe { jl_parse_string(string, len, 0, 0) };
 
         Value::new(raw)
     }
@@ -151,9 +147,7 @@ impl Julia {
         // Also, bad hack
         let filename = filename.as_ref().as_os_str().as_bytes().as_ptr() as *mut _;
 
-        let raw = unsafe {
-            jl_load_file_string(string, len, filename)
-        };
+        let raw = unsafe { jl_load_file_string(string, len, filename) };
 
         Value::new(raw)
     }
