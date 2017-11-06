@@ -10,6 +10,99 @@ use sym::Symbol;
 use datatype::Datatype;
 use string::AsCString;
 
+#[derive(Clone)]
+pub enum Exception {
+    Argument(Value),
+    Bounds(Value),
+    Composite(Value),
+    Divide(Value),
+    Domain(Value),
+    EOF(Value),
+    Error(Value),
+    Inexact(Value),
+    Init(Value),
+    Interrupt(Value),
+    InvalidState(Value),
+    Key(Value),
+    Load(Value),
+    OutOfMemory(Value),
+    ReadOnlyMemory(Value),
+    Remote(Value),
+    Method(Value),
+    Overflow(Value),
+    Parse(Value),
+    System(Value),
+    Type(Value),
+    UndefRef(Value),
+    UndefVar(Value),
+    Unicode(Value),
+    Unknown(Value),
+}
+
+impl Exception {
+    pub fn with_value(value: Value) -> Result<Exception> {
+        let typename = value.typename()?;
+        let ex = match typename.as_str() {
+            "ArgumentError" => Exception::Argument(value),
+            "BoundsError" => Exception::Bounds(value),
+            "CompositeException" => Exception::Composite(value),
+            "DivideError" => Exception::Divide(value),
+            "DomainError" => Exception::Domain(value),
+            "EOFError" => Exception::EOF(value),
+            "ErrorException" => Exception::Error(value),
+            "InexactError" => Exception::Inexact(value),
+            "InitError" => Exception::Init(value),
+            "InterruptException" => Exception::Interrupt(value),
+            "InvalidStateException" => Exception::InvalidState(value),
+            "KeyError" => Exception::Key(value),
+            "LoadError" => Exception::Load(value),
+            "OutOfMemoryError" => Exception::OutOfMemory(value),
+            "ReadOnlyMemoryError" => Exception::ReadOnlyMemory(value),
+            "RemoteException" => Exception::Remote(value),
+            "MethodError" => Exception::Method(value),
+            "OverflowError" => Exception::Overflow(value),
+            "ParseError" => Exception::Parse(value),
+            "SystemError" => Exception::System(value),
+            "TypeError" => Exception::Type(value),
+            "UndefRefError" => Exception::UndefRef(value),
+            "UndefVarError" => Exception::UndefVar(value),
+            "UnicodeError" => Exception::Unicode(value),
+            _ => Exception::Unknown(value),
+        };
+        Ok(ex)
+    }
+
+    pub fn into_inner(self) -> Value {
+        match self {
+            Exception::Argument(value) => value,
+            Exception::Bounds(value) => value,
+            Exception::Composite(value) => value,
+            Exception::Divide(value) => value,
+            Exception::Domain(value) => value,
+            Exception::EOF(value) => value,
+            Exception::Error(value) => value,
+            Exception::Inexact(value) => value,
+            Exception::Init(value) => value,
+            Exception::Interrupt(value) => value,
+            Exception::InvalidState(value) => value,
+            Exception::Key(value) => value,
+            Exception::Load(value) => value,
+            Exception::OutOfMemory(value) => value,
+            Exception::ReadOnlyMemory(value) => value,
+            Exception::Remote(value) => value,
+            Exception::Method(value) => value,
+            Exception::Overflow(value) => value,
+            Exception::Parse(value) => value,
+            Exception::System(value) => value,
+            Exception::Type(value) => value,
+            Exception::UndefRef(value) => value,
+            Exception::UndefVar(value) => value,
+            Exception::Unicode(value) => value,
+            Exception::Unknown(value) => value,
+        }
+    }
+}
+
 pub fn error<S: AsCString>(string: S) {
     let string = string.as_cstring().as_ptr();
     unsafe {
@@ -147,12 +240,12 @@ pub fn eof_error() {
     }
 }
 
-pub fn exception_occurred() -> Option<Value> {
+pub fn exception_occurred() -> Option<Exception> {
     let raw = unsafe { jl_exception_occurred() };
-    Value::new(raw).ok()
+    Value::new(raw).and_then(Exception::with_value).ok()
 }
 
-pub fn exception_clear() -> Option<Value> {
+pub fn exception_clear() -> Option<Exception> {
     let ret = exception_occurred();
     unsafe {
         jl_exception_clear();
