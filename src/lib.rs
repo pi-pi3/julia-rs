@@ -5,6 +5,7 @@
 
 #![allow(unknown_lints)]
 #![allow(not_unsafe_ptr_arg_deref)]
+#![allow(match_same_arms)]
 
 extern crate libc;
 extern crate smallvec;
