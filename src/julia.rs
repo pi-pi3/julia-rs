@@ -18,7 +18,7 @@ macro_rules! jl_call {
     ($fun:path, $( $arg:expr ),*) => {
         {
             let ret = $fun( $( $arg ),* );
-            let ex = $crate::exception::Exception::clear();
+            let ex = $crate::exception::Exception::catch();
             if let Some(ex) = ex {
                 return Err($crate::error::Error::UnhandledException(ex));
             }

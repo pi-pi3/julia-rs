@@ -42,17 +42,16 @@ pub enum Exception {
 }
 
 impl Exception {
-    pub fn occurred() -> Option<Exception> {
-        let raw = unsafe { jl_exception_occurred() };
-        Value::new(raw).and_then(Exception::with_value).ok()
+    pub fn occurred() -> bool {
+        unsafe { !jl_exception_occurred().is_null() }
     }
-    
-    pub fn clear() -> Option<Exception> {
-        let ret = Exception::occurred();
+
+    pub fn catch() -> Option<Exception> {
+        let raw = unsafe { jl_exception_occurred() };
         unsafe {
             jl_exception_clear();
         }
-        ret
+        Value::new(raw).and_then(Exception::with_value).ok()
     }
 
     pub fn with_value(value: Value) -> Result<Exception> {
