@@ -73,7 +73,7 @@ macro_rules! simple_jlvalue {
                     .lock()
                     .map(|ptr| {
                         let t = unsafe {
-                            $crate::sys::jl_typeof_str(ptr.as_ptr() as *mut $crate::sys::jl_value_t)
+                            jl_call!($crate::sys::jl_typeof_str, ptr.as_ptr() as *mut $crate::sys::jl_value_t)
                         };
                         t.try_as_string()
                     })
@@ -106,7 +106,10 @@ impl Value {
     }
 
     pub fn expand(&self) -> Result<Value> {
-        let raw = self.map(|v| unsafe { jl_expand(v) })?;
+        let raw = self.lock()?;
+        let raw = unsafe {
+            jl_call!(jl_expand, raw)
+        };
         Value::new(raw)
     }
 

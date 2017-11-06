@@ -15,6 +15,7 @@ pub mod error;
 pub mod exception;
 pub mod string;
 
+#[macro_use]
 pub mod julia;
 #[macro_use]
 pub mod value;

@@ -40,6 +40,19 @@ pub enum Exception {
 }
 
 impl Exception {
+    pub fn occurred() -> Option<Exception> {
+        let raw = unsafe { jl_exception_occurred() };
+        Value::new(raw).and_then(Exception::with_value).ok()
+    }
+    
+    pub fn clear() -> Option<Exception> {
+        let ret = Exception::occurred();
+        unsafe {
+            jl_exception_clear();
+        }
+        ret
+    }
+
     pub fn with_value(value: Value) -> Result<Exception> {
         let typename = value.typename()?;
         let ex = match typename.as_str() {
@@ -238,17 +251,4 @@ pub fn eof_error() {
     unsafe {
         jl_eof_error();
     }
-}
-
-pub fn exception_occurred() -> Option<Exception> {
-    let raw = unsafe { jl_exception_occurred() };
-    Value::new(raw).and_then(Exception::with_value).ok()
-}
-
-pub fn exception_clear() -> Option<Exception> {
-    let ret = exception_occurred();
-    unsafe {
-        jl_exception_clear();
-    }
-    ret
 }

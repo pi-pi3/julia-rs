@@ -26,6 +26,7 @@ pub enum Error {
     UTF8Error,
     InvalidSymbol,
     UndefVar,
+    JuliaInitialized,
 }
 
 impl From<FromBytesWithNulError> for Error {
