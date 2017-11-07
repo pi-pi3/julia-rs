@@ -1,7 +1,9 @@
 
 use std::ffi::{CStr, CString};
 
-use error::{Result, Error};
+use libc::c_char;
+
+use error::Error;
 
 #[macro_export]
 macro_rules! cstr {
@@ -17,64 +19,83 @@ macro_rules! cstr {
     }
 }
 
-pub trait AsCString {
-    fn as_cstring(self) -> CString;
+pub trait IntoCString {
+    fn into_cstring(self) -> CString;
 }
 
-pub trait TryAsString {
-    fn try_as_string(self) -> Result<String>;
+pub trait TryIntoString {
+    type Error;
+    fn try_into_string(self) -> Result<String, Self::Error>;
 }
 
-impl AsCString for CString {
-    fn as_cstring(self) -> CString {
+impl IntoCString for CString {
+    fn into_cstring(self) -> CString {
         self
     }
 }
 
-impl<'a> AsCString for &'a CStr {
-    fn as_cstring(self) -> CString {
+impl<'a> IntoCString for &'a CStr {
+    fn into_cstring(self) -> CString {
         CStr::into_c_string(From::from(self))
     }
 }
 
-impl AsCString for String {
-    fn as_cstring(mut self) -> CString {
+impl IntoCString for String {
+    fn into_cstring(mut self) -> CString {
         self.push('\0');
         unsafe { CString::from_vec_unchecked(self.into_bytes()) }
     }
 }
 
-impl<'a> AsCString for &'a String {
-    fn as_cstring(self) -> CString {
-        self.clone().as_cstring()
+impl<'a> IntoCString for &'a String {
+    fn into_cstring(self) -> CString {
+        self.clone().into_cstring()
     }
 }
 
-impl<'a> AsCString for &'a str {
-    fn as_cstring(self) -> CString {
+impl<'a> IntoCString for &'a str {
+    fn into_cstring(self) -> CString {
         let mut bytes = self.as_bytes().to_vec();
         bytes.push(0);
         unsafe { CString::from_vec_unchecked(bytes) }
     }
 }
 
-// raw C string pointer
-impl TryAsString for *const i8 {
-    fn try_as_string(self) -> Result<String> {
+impl TryIntoString for *const c_char {
+    type Error = Error;
+    fn try_into_string(self) -> Result<String, Error> {
         if self.is_null() {
-            return Err(Error::NullPointer);
+            Err(Error::NullPointer)
+        } else {
+            unsafe { CStr::from_ptr(self).try_into_string() }
         }
+    }
+}
 
-        let mut raw = self as *const u8;
-        let mut vec = vec![];
+impl<'a> TryIntoString for &'a CStr {
+    type Error = Error;
+    fn try_into_string(self) -> Result<String, Error> {
+        self.to_owned().try_into_string()
+    }
+}
 
-        unsafe {
-            while *raw != 0 {
-                vec.push(*raw);
-                raw = raw.offset(1);
-            }
-        }
+impl TryIntoString for CString {
+    type Error = Error;
+    fn try_into_string(self) -> Result<String, Error> {
+        self.into_string().map_err(From::from)
+    }
+}
 
-        String::from_utf8(vec).map_err(From::from)
+impl<'a> TryIntoString for &'a str {
+    type Error = Error;
+    fn try_into_string(self) -> Result<String, Error> {
+        Ok(self.to_owned())
+    }
+}
+
+impl TryIntoString for String {
+    type Error = Error;
+    fn try_into_string(self) -> Result<String, Error> {
+        Ok(self)
     }
 }

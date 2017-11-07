@@ -3,14 +3,12 @@ extern crate julia;
 
 use std::io::{self, Write};
 
-use julia::{Julia, Value, Function};
-use julia::value::JlValue;
+use julia::{Julia, Value};
 
 fn main() {
     let mut jl = Julia::new().unwrap();
 
-    let println = jl.eval_string("println").unwrap(); // TODO: get_function
-    let println = Function::from_value(println).unwrap();
+    let println = jl.base().function("println").unwrap();
 
     loop {
         let mut input = String::new();

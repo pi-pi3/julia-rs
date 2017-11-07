@@ -1,10 +1,11 @@
 
 use std::result;
-use std::ffi::FromBytesWithNulError;
+use std::ffi::{FromBytesWithNulError, IntoStringError};
 use std::sync::PoisonError;
 use std::rc::Rc;
 use std::char::CharTryFromError;
 use std::string::FromUtf8Error;
+use std::io;
 
 use exception::Exception;
 
@@ -26,6 +27,7 @@ pub enum Error {
     InvalidSymbol,
     UndefVar,
     JuliaInitialized,
+    IOError,
 }
 
 impl From<FromBytesWithNulError> for Error {
@@ -55,5 +57,17 @@ impl<G> From<PoisonError<G>> for Error {
 impl<T> From<Rc<T>> for Error {
     fn from(_: Rc<T>) -> Error {
         Error::ResourceInUse
+    }
+}
+
+impl From<io::Error> for Error {
+    fn from(_: io::Error) -> Error {
+        Error::IOError
+    }
+}
+
+impl From<IntoStringError> for Error {
+    fn from(_: IntoStringError) -> Error {
+        Error::UTF8Error
     }
 }

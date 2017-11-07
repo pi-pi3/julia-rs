@@ -68,14 +68,14 @@ macro_rules! simple_jlvalue {
             }
 
             fn typename(&self) -> $crate::error::Result<String> {
-                use $crate::string::TryAsString;
+                use $crate::string::TryIntoString;
                 let result = self._inner
                     .lock()
                     .map(|ptr| {
                         let t = unsafe {
                             jl_call!($crate::sys::jl_typeof_str, ptr.as_ptr() as *mut $crate::sys::jl_value_t)
                         };
-                        t.try_as_string()
+                        t.try_into_string()
                     })
                     .map_err(From::from);
                 match result {

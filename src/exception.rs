@@ -10,7 +10,7 @@ use value::{Value, JlValue};
 use error::Result;
 use sym::Symbol;
 use datatype::Datatype;
-use string::AsCString;
+use string::IntoCString;
 
 #[derive(Clone)]
 pub enum Exception {
@@ -197,8 +197,8 @@ impl fmt::Debug for Exception {
     }
 }
 
-pub fn error<S: AsCString>(string: S) {
-    let string = string.as_cstring();
+pub fn error<S: IntoCString>(string: S) {
+    let string = string.into_cstring();
     let string = string.as_ptr();
     unsafe {
         jl_error(string);
@@ -206,12 +206,12 @@ pub fn error<S: AsCString>(string: S) {
 }
 
 pub fn error_format(args: fmt::Arguments) {
-    error(fmt::format(args).as_cstring());
+    error(fmt::format(args).into_cstring());
 }
 
-pub fn exception<S: AsCString>(ty: &Datatype, string: S) -> Result<()> {
+pub fn exception<S: IntoCString>(ty: &Datatype, string: S) -> Result<()> {
     let ty = ty.lock()?;
-    let string = string.as_cstring();
+    let string = string.into_cstring();
     let string = string.as_ptr();
     unsafe {
         jl_exceptionf(ty, string);
@@ -220,27 +220,27 @@ pub fn exception<S: AsCString>(ty: &Datatype, string: S) -> Result<()> {
 }
 
 pub fn exception_format(ty: &Datatype, args: fmt::Arguments) -> Result<()> {
-    exception(ty, fmt::format(args).as_cstring())
+    exception(ty, fmt::format(args).into_cstring())
 }
 
-pub fn too_few_args<S: AsCString>(fname: S, min: usize) {
-    let fname = fname.as_cstring();
+pub fn too_few_args<S: IntoCString>(fname: S, min: usize) {
+    let fname = fname.into_cstring();
     let fname = fname.as_ptr();
     unsafe {
         jl_too_few_args(fname, min as i32);
     }
 }
 
-pub fn too_many_args<S: AsCString>(fname: S, max: usize) {
-    let fname = fname.as_cstring();
+pub fn too_many_args<S: IntoCString>(fname: S, max: usize) {
+    let fname = fname.into_cstring();
     let fname = fname.as_ptr();
     unsafe {
         jl_too_many_args(fname, max as i32);
     }
 }
 
-pub fn type_error<S: AsCString>(fname: S, expected: &Value, got: &Value) -> Result<()> {
-    let fname = fname.as_cstring();
+pub fn type_error<S: IntoCString>(fname: S, expected: &Value, got: &Value) -> Result<()> {
+    let fname = fname.into_cstring();
     let fname = fname.as_ptr();
     let expected = expected.lock()?;
     let got = got.lock()?;
@@ -250,10 +250,10 @@ pub fn type_error<S: AsCString>(fname: S, expected: &Value, got: &Value) -> Resu
     Ok(())
 }
 
-pub fn type_error_rt<S: AsCString>(fname: S, context: S, ty: &Value, got: &Value) -> Result<()> {
-    let fname = fname.as_cstring();
+pub fn type_error_rt<S: IntoCString>(fname: S, context: S, ty: &Value, got: &Value) -> Result<()> {
+    let fname = fname.into_cstring();
     let fname = fname.as_ptr();
-    let context = context.as_cstring();
+    let context = context.into_cstring();
     let context = context.as_ptr();
     let ty = ty.lock()?;
     let got = got.lock()?;
