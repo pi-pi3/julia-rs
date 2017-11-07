@@ -6,6 +6,12 @@ authors = ["Szymon Walter <walter.szymon.98@gmail.com>"]
 [dependencies]
 libc = "0.2"
 smallvec = "0.5"
+rustyline = "1.0"
+colored = "1.6"
 
 [dependencies.julia-sys]
 path = "julia-sys"
+
+[[bin]]
+name = "julia-rs"
+path = "src/main.rs"
