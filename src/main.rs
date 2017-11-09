@@ -7,7 +7,7 @@ use rustyline::Editor;
 use rustyline::error::ReadlineError;
 use colored::*;
 
-use julia::api::Julia;
+use julia::api::{Julia, Value};
 use julia::error::Error;
 
 macro_rules! errprintln {
@@ -44,6 +44,29 @@ fn greet() {
         "_".bright_yellow(),
         "(_)".bright_yellow()
     );
+}
+
+fn set_history(jl: &mut Julia, ret: &Value) -> Result<(), usize> {
+    let ans = jl.main().global("ans").unwrap_or_else(|_| Value::nothing());
+    let ans1 = jl.main().global("ans1").unwrap_or_else(|_| Value::nothing());
+    let ans2 = jl.main().global("ans2").unwrap_or_else(|_| Value::nothing());
+    let ans3 = jl.main().global("ans3").unwrap_or_else(|_| Value::nothing());
+    let ans4 = jl.main().global("ans4").unwrap_or_else(|_| Value::nothing());
+    let ans5 = jl.main().global("ans5").unwrap_or_else(|_| Value::nothing());
+    let ans6 = jl.main().global("ans6").unwrap_or_else(|_| Value::nothing());
+    let ans7 = jl.main().global("ans7").unwrap_or_else(|_| Value::nothing());
+    let ans8 = jl.main().global("ans8").unwrap_or_else(|_| Value::nothing());
+    jl.main().set("ans", ret).map_err(|_| 0_usize)?;
+    jl.main().set("ans1", &ans).map_err(|_| 1_usize)?;
+    jl.main().set("ans2", &ans1).map_err(|_| 2_usize)?;
+    jl.main().set("ans3", &ans2).map_err(|_| 3_usize)?;
+    jl.main().set("ans4", &ans3).map_err(|_| 4_usize)?;
+    jl.main().set("ans5", &ans4).map_err(|_| 5_usize)?;
+    jl.main().set("ans6", &ans5).map_err(|_| 6_usize)?;
+    jl.main().set("ans7", &ans6).map_err(|_| 7_usize)?;
+    jl.main().set("ans8", &ans7).map_err(|_| 8_usize)?;
+    jl.main().set("ans9", &ans8).map_err(|_| 9_usize)?;
+    Ok(())
 }
 
 fn main() {
@@ -85,6 +108,10 @@ fn main() {
 
         if !ret.is_nothing() {
             println!("{}", ret);
+        }
+
+        if let Err(i) = set_history(&mut jl, &ret) {
+            eprintln!("Warning, couldn't set answer history at {}", i);
         }
     }
 }
