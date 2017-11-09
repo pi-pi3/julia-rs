@@ -7,7 +7,7 @@ use std::char::CharTryFromError;
 use std::string::FromUtf8Error;
 use std::io;
 
-use exception::Exception;
+use api::Exception;
 
 pub type Result<T> = result::Result<T, Error>;
 

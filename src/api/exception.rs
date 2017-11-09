@@ -6,11 +6,9 @@ use std::ops::DerefMut;
 use smallvec::SmallVec;
 
 use sys::*;
-use value::{Value, JlValue};
 use error::Result;
-use sym::Symbol;
-use datatype::Datatype;
 use string::IntoCString;
+use super::{Value, JlValue, Symbol, Datatype};
 
 #[derive(Clone)]
 pub enum Exception {

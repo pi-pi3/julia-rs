@@ -5,9 +5,8 @@ extern crate julia;
 
 use std::convert::TryFrom;
 
-use julia::Julia;
-use julia::value::Value;
 use julia::error::Result;
+use julia::api::{Julia, Value};
 
 fn func() -> Result<Vec<Value>> {
     let mut jl = Julia::new()?;

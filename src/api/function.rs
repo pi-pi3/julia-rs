@@ -2,8 +2,8 @@
 use smallvec::SmallVec;
 
 use sys::*;
-use value::{JlValue, Value};
 use error::{Result, Error};
+use super::{JlValue, Value};
 
 jlvalues! {
     pub struct Function(jl_function_t);

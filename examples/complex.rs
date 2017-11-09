@@ -5,8 +5,7 @@ extern crate julia;
 
 use std::convert::TryFrom;
 
-use julia::{Julia, Value, Function};
-use julia::value::JlValue;
+use julia::api::{Julia, Value, JlValue, Function};
 
 fn main() {
     let mut jl = Julia::new().unwrap();

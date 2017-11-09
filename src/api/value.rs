@@ -32,7 +32,7 @@ macro_rules! simple_jlvalue {
             _inner: ::std::rc::Rc<::std::sync::Mutex<::std::ptr::Unique<$type>>>,
         }
 
-        impl $crate::value::JlValue<$type> for $name {
+        impl $crate::api::JlValue<$type> for $name {
             unsafe fn new_unchecked(_inner: *mut $type) -> $name {
                 $name {
                     _inner: ::std::rc::Rc::new(

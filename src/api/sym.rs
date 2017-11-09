@@ -2,7 +2,7 @@
 use sys::*;
 use error::{Result, Error};
 use string::IntoCString;
-use value::JlValue;
+use super::JlValue;
 
 pub trait IntoSymbol {
     fn into_symbol(self) -> Result<Symbol>;

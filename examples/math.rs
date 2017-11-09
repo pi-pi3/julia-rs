@@ -5,7 +5,7 @@ extern crate julia;
 
 use std::convert::TryFrom;
 
-use julia::{Julia, Value};
+use julia::api::{Julia, Value};
 
 fn main() {
     let jl = Julia::new().unwrap();

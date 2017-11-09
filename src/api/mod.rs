@@ -3,8 +3,6 @@ use std::io::Read;
 use std::ptr;
 
 use sys::*;
-use value::{JlValue, Value};
-use module::Module;
 use error::{Result, Error};
 use string::IntoCString;
 
@@ -16,7 +14,7 @@ macro_rules! jl_call {
     ($fun:path, $( $arg:expr ),*) => {
         {
             let ret = $fun( $( $arg ),* );
-            let ex = $crate::exception::Exception::catch();
+            let ex = $crate::api::Exception::catch();
             if let Some(ex) = ex {
                 return Err($crate::error::Error::UnhandledException(ex));
             }
@@ -24,6 +22,21 @@ macro_rules! jl_call {
         }
     }
 }
+
+#[macro_use]
+pub mod value;
+pub mod function;
+pub mod sym;
+pub mod module;
+pub mod datatype;
+pub mod exception;
+
+pub use self::value::{Value, JlValue};
+pub use self::function::Function;
+pub use self::sym::{Symbol, IntoSymbol};
+pub use self::module::Module;
+pub use self::datatype::Datatype;
+pub use self::exception::Exception;
 
 pub struct Julia {
     main: Module,

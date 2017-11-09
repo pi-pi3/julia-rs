@@ -13,28 +13,15 @@ extern crate julia_sys;
 
 pub mod sys;
 pub mod error;
-pub mod exception;
+#[macro_use]
 pub mod string;
 
 #[macro_use]
-pub mod julia;
-#[macro_use]
-pub mod value;
-pub mod function;
-pub mod sym;
-pub mod module;
-pub mod datatype;
-
-pub use julia::Julia;
-pub use value::Value;
-pub use function::Function;
-pub use sym::Symbol;
-pub use module::Module;
-pub use datatype::Datatype;
+pub mod api;
 
 #[cfg(test)]
 mod tests {
-    use super::Julia;
+    use super::api::Julia;
 
     #[test]
     fn sanity() {

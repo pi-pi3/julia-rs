@@ -1,10 +1,8 @@
 
 extern crate julia;
 
-use julia::{Julia, Value};
-use julia::value::JlValue;
-use julia::exception::Exception;
 use julia::error::Error;
+use julia::api::{Julia, Value, JlValue, Exception};
 
 fn main() {
     let mut jl = Julia::new().unwrap();

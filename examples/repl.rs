@@ -3,7 +3,7 @@ extern crate julia;
 
 use std::io::{self, Write};
 
-use julia::{Julia, Value};
+use julia::api::{Julia, Value};
 
 fn main() {
     let mut jl = Julia::new().unwrap();

@@ -1,7 +1,7 @@
 
 extern crate julia;
 
-use julia::Julia;
+use julia::api::Julia;
 
 fn main() {
     let mut jl = Julia::new().unwrap();

@@ -1,9 +1,7 @@
 
 use sys::*;
 use error::{Result, Error};
-use value::{JlValue, Value};
-use function::Function;
-use sym::IntoSymbol;
+use super::{Value, JlValue, Function, IntoSymbol};
 
 jlvalues! {
     pub struct Module(jl_module_t);

@@ -7,7 +7,7 @@ use rustyline::Editor;
 use rustyline::error::ReadlineError;
 use colored::*;
 
-use julia::Julia;
+use julia::api::Julia;
 use julia::error::Error;
 
 
