@@ -3,7 +3,9 @@ extern crate julia;
 extern crate colored;
 extern crate rustyline;
 
-use rustyline::Editor;
+use std::env;
+
+use rustyline::{Config, Editor, EditMode, KeyPress, Cmd, CompletionType};
 use rustyline::error::ReadlineError;
 use colored::*;
 
@@ -93,17 +95,39 @@ fn main() {
             return;
         }
     };
-    let mut rl = Editor::<()>::new();
 
     greet();
+
+    let config = Config::builder()
+        .completion_type(CompletionType::List)
+        .history_ignore_space(true)
+        .edit_mode(EditMode::Emacs)
+        .build();
+    let mut rl = Editor::<()>::with_config(config);
+    rl.bind_sequence(KeyPress::Up, Cmd::PreviousHistory);
+    rl.bind_sequence(KeyPress::Down, Cmd::NextHistory);
+
+    let home = env::var("HOME").unwrap();
+    let history_path = format!("{}/.julia-rs_history", home);
+
+    rl.load_history(&history_path).ok();
 
     let ps1 = format!("{} ", "julia.rs>".bright_green().bold());
     loop {
         let line = rl.readline(&ps1);
         let line = match line {
-            Ok(line) => line,
-            Err(ReadlineError::Eof) => break,
-            Err(ReadlineError::Interrupted) => continue,
+            Ok(line) => {
+                rl.add_history_entry(&*line);
+                line
+            },
+            Err(ReadlineError::Eof) => {
+                println!("^D");
+                break;
+            },
+            Err(ReadlineError::Interrupted) => {
+                println!("^C");
+                continue;
+            },
             Err(err) => {
                 errprintln!("Error: {}", err);
                 continue;
@@ -128,7 +152,8 @@ fn main() {
         }
 
         if let Err(i) = set_history(&mut jl, &ret) {
-            eprintln!("Warning, couldn't set answer history at {}", i);
+            eprintln!("Warning: couldn't set answer history at {}", i);
         }
+        rl.save_history(&history_path).ok();
     }
 }
