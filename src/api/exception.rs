@@ -206,7 +206,9 @@ impl fmt::Display for Exception {
 impl error::Error for Exception {
     fn description(&self) -> &str {
         match *self {
-            Exception::Argument(_) => "the parameters to a function call do not match a valid signature",
+            Exception::Argument(_) => {
+                "the parameters to a function call do not match a valid signature"
+            }
             Exception::Bounds(_) => "attempt to access index out-of-bounds",
             Exception::Composite(_) => "composite exception",
             Exception::Divide(_) => "divide by zero",
@@ -218,7 +220,9 @@ impl error::Error for Exception {
             Exception::Interrupt(_) => "the process was stopped by a terminal interrupt (^C)",
             Exception::InvalidState(_) => "the program reached an invalid exception",
             Exception::Key(_) => "key doesn't exist in Associative- or Set-like object",
-            Exception::Load(_) => "an error occurred while include-ing, require-ing or using a file",
+            Exception::Load(_) => {
+                "an error occurred while include-ing, require-ing or using a file"
+            }
             Exception::OutOfMemory(_) => "operation allocated too much memory",
             Exception::ReadOnlyMemory(_) => "operation tried to write to read-only memory",
             Exception::Remote(_) => "remote exception occurred",

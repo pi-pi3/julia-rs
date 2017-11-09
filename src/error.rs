@@ -41,9 +41,9 @@ impl fmt::Display for Error {
             Error::FromUTF8Error(ref err) => write!(f, "FromUTF8Error({})", err),
             Error::IntoStringError(ref err) => write!(f, "IntoStringError({})", err),
             Error::IOError(ref err) => write!(f, "IOError({})", err),
-            Error::InvalidUnbox | Error::NotAFunction | Error::CallError
-                | Error::EvalError | Error::NullPointer | Error::InvalidSymbol
-                | Error::JuliaInitialized | Error::PoisonError | Error::ResourceInUse => fmt::Debug::fmt(self, f),
+            Error::InvalidUnbox | Error::NotAFunction | Error::CallError | Error::EvalError |
+            Error::NullPointer | Error::InvalidSymbol | Error::JuliaInitialized |
+            Error::PoisonError | Error::ResourceInUse => fmt::Debug::fmt(self, f),
         }
     }
 }
@@ -77,9 +77,9 @@ impl error::Error for Error {
             Error::FromUTF8Error(ref err) => Some(err),
             Error::IntoStringError(ref err) => Some(err),
             Error::IOError(ref err) => Some(err),
-            Error::InvalidUnbox | Error::NotAFunction | Error::CallError
-                | Error::EvalError | Error::NullPointer | Error::InvalidSymbol
-                | Error::JuliaInitialized | Error::PoisonError | Error::ResourceInUse => None,
+            Error::InvalidUnbox | Error::NotAFunction | Error::CallError | Error::EvalError |
+            Error::NullPointer | Error::InvalidSymbol | Error::JuliaInitialized |
+            Error::PoisonError | Error::ResourceInUse => None,
         }
     }
 }
