@@ -154,6 +154,6 @@ fn main() {
         if let Err(i) = set_history(&mut jl, &ret) {
             eprintln!("Warning: couldn't set answer history at {}", i);
         }
-        rl.save_history(&history_path).ok();
     }
+    rl.save_history(&history_path).ok();
 }
