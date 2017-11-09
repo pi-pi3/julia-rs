@@ -11,13 +11,29 @@ use julia::api::{Julia, Value};
 use julia::error::Error;
 
 macro_rules! errprintln {
-    ($fmt:expr) => { eprintln!($fmt); };
+    ($msg:expr) => { eprintln!("{}", msg.bright_red()); };
     ($fmt:expr, $err:expr) => {
+        use std::fmt::Write;
         use std::error::Error;
-        match $err.cause() {
-            None        => eprintln!(concat!($fmt, "\n > {}"), $err, $err.description()),
-            Some(cause) => eprintln!(concat!($fmt, "\n > {}\n >> {}"), $err, $err.description(), cause),
-        }
+
+        let mut msg = String::new();
+        let err = match $err.cause() {
+            None        => {
+                write!(msg, concat!($fmt, "\n > {}"), $err, $err.description())
+                    .and_then(|_| {
+                        eprintln!("{}", msg.bright_red());
+                        Ok(())
+                    })
+            },
+            Some(cause) => {
+                write!(msg, concat!($fmt, "\n > {}\n >> {}"), $err, $err.description(), cause)
+                    .and_then(|_| {
+                        eprintln!("{}", msg.bright_red());
+                        Ok(())
+                    })
+            },
+        };
+        err.expect("Couldn't write error");
     }
 }
 
