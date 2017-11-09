@@ -11,7 +11,7 @@ use julia::api::{Julia, Value};
 use julia::error::Error;
 
 macro_rules! errprintln {
-    ($msg:expr) => { eprintln!("{}", msg.bright_red()); };
+    ($msg:expr) => { eprintln!("{}", msg.bright_red().bold()); };
     ($fmt:expr, $err:expr) => {
         use std::fmt::Write;
         use std::error::Error;
@@ -21,14 +21,14 @@ macro_rules! errprintln {
             None        => {
                 write!(msg, concat!($fmt, "\n > {}"), $err, $err.description())
                     .and_then(|_| {
-                        eprintln!("{}", msg.bright_red());
+                        eprintln!("{}", msg.bright_red().bold());
                         Ok(())
                     })
             },
             Some(cause) => {
                 write!(msg, concat!($fmt, "\n > {}\n >> {}"), $err, $err.description(), cause)
                     .and_then(|_| {
-                        eprintln!("{}", msg.bright_red());
+                        eprintln!("{}", msg.bright_red().bold());
                         Ok(())
                     })
             },
@@ -49,16 +49,16 @@ fn greet() {
  _/ |\__'_|_|_|\__'_|{}|_|   (__/
 |__/
 "#,
-        "_".bright_green(),
-        "_".bright_blue(),
-        "_".bright_red(),
-        "(_)".bright_green(),
-        "_".bright_magenta(),
-        "(_)".bright_blue(),
-        "(_)".bright_red(),
-        "(_)".bright_magenta(),
-        "_".bright_yellow(),
-        "(_)".bright_yellow()
+        "_".bright_green().bold(),
+        "_".bright_blue().bold(),
+        "_".bright_red().bold(),
+        "(_)".bright_green().bold(),
+        "_".bright_magenta().bold(),
+        "(_)".bright_blue().bold(),
+        "(_)".bright_red().bold(),
+        "(_)".bright_magenta().bold(),
+        "_".bright_yellow().bold(),
+        "(_)".bright_yellow().bold()
     );
 }
 
@@ -97,8 +97,9 @@ fn main() {
 
     greet();
 
+    let ps1 = format!("{} ", "julia.rs>".bright_green().bold());
     loop {
-        let line = rl.readline("julia.rs> ");
+        let line = rl.readline(&ps1);
         let line = match line {
             Ok(line) => line,
             Err(ReadlineError::Eof) => break,
