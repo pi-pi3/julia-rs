@@ -45,7 +45,7 @@ macro_rules! simple_jlvalue {
 
             fn new(_inner: *mut $type) -> $crate::error::Result<$name> {
                 if _inner.is_null() {
-                    Err($crate::error::Error::NullValue)
+                    Err($crate::error::Error::NullPointer)
                 } else {
                     unsafe {
                         Ok($name::new_unchecked(_inner))

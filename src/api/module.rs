@@ -1,6 +1,6 @@
 
 use sys::*;
-use error::{Result, Error};
+use error::Result;
 use super::{Value, JlValue, Function, IntoSymbol};
 
 jlvalues! {
@@ -13,7 +13,7 @@ impl Module {
         let sym = sym.into_symbol()?;
         let sym = sym.into_inner()?;
         let raw = unsafe { jl_call!(jl_get_global, module, sym) };
-        Value::new(raw).map_err(|_| Error::UndefVar)
+        Value::new(raw)
     }
 
     pub fn function<S: IntoSymbol>(&self, sym: S) -> Result<Function> {

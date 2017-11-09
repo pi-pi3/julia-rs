@@ -1,5 +1,6 @@
 
 use std::fmt;
+use std::error;
 use std::ops::Deref;
 use std::ops::DerefMut;
 
@@ -192,6 +193,45 @@ impl fmt::Debug for Exception {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let typename = self.typename().map_err(|_| fmt::Error)?;
         write!(f, "{}", typename)
+    }
+}
+
+// TODO
+impl fmt::Display for Exception {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
+}
+
+impl error::Error for Exception {
+    fn description(&self) -> &str {
+        match *self {
+            Exception::Argument(_) => "the parameters to a function call do not match a valid signature",
+            Exception::Bounds(_) => "attempt to access index out-of-bounds",
+            Exception::Composite(_) => "composite exception",
+            Exception::Divide(_) => "divide by zero",
+            Exception::Domain(_) => "the argument is outside of the valid domain",
+            Exception::EOF(_) => "no more data is available from file or stream",
+            Exception::Error(_) => "generic error occurred",
+            Exception::Inexact(_) => "type conversion cannot be done exactly",
+            Exception::Init(_) => "an error occurred when running a module's __init__ ",
+            Exception::Interrupt(_) => "the process was stopped by a terminal interrupt (^C)",
+            Exception::InvalidState(_) => "the program reached an invalid exception",
+            Exception::Key(_) => "key doesn't exist in Associative- or Set-like object",
+            Exception::Load(_) => "an error occurred while include-ing, require-ing or using a file",
+            Exception::OutOfMemory(_) => "operation allocated too much memory",
+            Exception::ReadOnlyMemory(_) => "operation tried to write to read-only memory",
+            Exception::Remote(_) => "remote exception occurred",
+            Exception::Method(_) => "method with the required type signature doesn't exist",
+            Exception::Overflow(_) => "the result of an expression is too large",
+            Exception::Parse(_) => "the expression couldn't be parsed as a valid Julia expression",
+            Exception::System(_) => "system call failed",
+            Exception::Type(_) => "type assertion failed",
+            Exception::UndefRef(_) => "the item or field is not defined",
+            Exception::UndefVar(_) => "symbol is not defined in current scope",
+            Exception::Unicode(_) => "byte array does not represent a valid unicode string",
+            Exception::Unknown(_) => "unknown exception",
+        }
     }
 }
 

@@ -10,6 +10,16 @@ use colored::*;
 use julia::api::Julia;
 use julia::error::Error;
 
+macro_rules! errprintln {
+    ($fmt:expr) => { eprintln!($fmt); };
+    ($fmt:expr, $err:expr) => {
+        use std::error::Error;
+        match $err.cause() {
+            None        => eprintln!(concat!($fmt, "\n > {}"), $err, $err.description()),
+            Some(cause) => eprintln!(concat!($fmt, "\n > {}\n >> {}"), $err, $err.description(), cause),
+        }
+    }
+}
 
 fn greet() {
     println!(
@@ -18,9 +28,9 @@ fn greet() {
    {}       _ {}{}{}
   {}     | {} {}
    _ _   _| |_  __ _     _  _  __
-  | | | | | | |/ _` | _ | |/ // _)
-  | | |_| | | | (_| |/ \|  ,/ \_ \
- _/ |\__'_|_|_|\__'_|\_/|_|   (__/
+  | | | | | | |/ _` |   | |/ // _)
+  | | |_| | | | (_| | {} |  ,/ \_ \
+ _/ |\__'_|_|_|\__'_|{}|_|   (__/
 |__/
 "#,
         "_".bright_green(),
@@ -30,7 +40,9 @@ fn greet() {
         "_".bright_magenta(),
         "(_)".bright_blue(),
         "(_)".bright_red(),
-        "(_)".bright_magenta()
+        "(_)".bright_magenta(),
+        "_".bright_yellow(),
+        "(_)".bright_yellow()
     );
 }
 
@@ -38,7 +50,7 @@ fn main() {
     let mut jl = match Julia::new() {
         Ok(jl) => jl,
         Err(err) => {
-            eprintln!("An error occured while initializing Julia:\n{:?}", err);
+            errprintln!("An error occurred while initializing Julia:\n{}", err);
             return;
         }
     };
@@ -48,8 +60,8 @@ fn main() {
     let println = match jl.base().function("println") {
         Ok(fun) => fun,
         Err(err) => {
-            eprintln!(
-                "An error occured while getting the `println` function:\n{:?}",
+            errprintln!(
+                "An error occurred while getting the `println` function:\n{}",
                 err
             );
             return;
@@ -65,7 +77,7 @@ fn main() {
             Err(ReadlineError::Eof) => break,
             Err(ReadlineError::Interrupted) => continue,
             Err(err) => {
-                eprintln!("Error: {:?}", err);
+                errprintln!("Error: {}", err);
                 continue;
             }
         };
@@ -74,17 +86,17 @@ fn main() {
         let ret = match ret {
             Ok(ret) => ret,
             Err(Error::UnhandledException(ex)) => {
-                eprintln!("Exception occured: {:?}", ex);
+                errprintln!("Exception: {}", ex);
                 continue;
             }
             Err(err) => {
-                eprintln!("Error: {:?}", err);
+                errprintln!("Error: {}", err);
                 continue;
             }
         };
 
         if !ret.is_nothing() {
-            println.call1(&ret).expect("Fatal error occured!");
+            println.call1(&ret).expect("Fatal error occurred!");
         }
     }
 }
