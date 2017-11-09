@@ -12,7 +12,10 @@ impl Module {
         let module = self.lock()?;
         let sym = sym.into_symbol()?;
         let sym = sym.into_inner()?;
-        let raw = unsafe { jl_call!(jl_get_global, module, sym) };
+        let raw = unsafe {
+            jl_get_global(module, sym)
+        };
+        jl_catch!();
         Value::new(raw)
     }
 
@@ -28,8 +31,9 @@ impl Module {
         let sym = sym.into_inner()?;
         let val = value.lock()?;
         unsafe {
-            jl_call!(jl_set_global, module, sym, val);
+            jl_set_global(module, sym, val);
         }
+        jl_catch!();
         Ok(())
     }
 
@@ -39,8 +43,9 @@ impl Module {
         let sym = sym.into_inner()?;
         let val = value.lock()?;
         unsafe {
-            jl_call!(jl_set_const, module, sym, val);
+            jl_set_const(module, sym, val);
         }
+        jl_catch!();
         Ok(())
     }
 }

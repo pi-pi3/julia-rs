@@ -1,8 +1,10 @@
 
 use std::convert::TryFrom;
+use std::ffi::CStr;
 
 use sys::*;
 use error::{Result, Error};
+use api::Function;
 
 pub trait JlValue<T>
 where
@@ -73,8 +75,9 @@ macro_rules! simple_jlvalue {
                     .lock()
                     .map(|ptr| {
                         let t = unsafe {
-                            jl_call!($crate::sys::jl_typeof_str, ptr.as_ptr() as *mut $crate::sys::jl_value_t)
+                            $crate::sys::jl_typeof_str(ptr.as_ptr() as *mut $crate::sys::jl_value_t)
                         };
+                        jl_catch!();
                         t.try_into_string()
                     })
                     .map_err(From::from);
@@ -82,6 +85,42 @@ macro_rules! simple_jlvalue {
                     Ok(x) => x,
                     Err(err) => Err(err),
                 }
+            }
+        }
+
+        impl ::std::fmt::Debug for $name {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                use $crate::api::JlValue;
+                let typename = self.typename().map_err(|_| ::std::fmt::Error)?;
+                write!(f, "{}({})", typename, self)
+            }
+        }
+
+        impl ::std::fmt::Display for $name {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                use ::std::convert::TryFrom;
+                use $crate::api::JlValue;
+                let jl_string = unsafe {
+                    let name = ::std::ffi::CString::new("string")
+                        .map_err(|_| ::std::fmt::Error)?;
+                    let name = name.as_ptr();
+                    $crate::sys::jl_get_function($crate::sys::jl_base_module, name)
+                };
+                jl_catch!(|ex -> ::std::fmt::Error| ::std::fmt::Error);
+                let jl_string = $crate::api::Function::new(jl_string)
+                    .map_err(|_| ::std::fmt::Error)?;
+
+                let inner = self.lock()
+                    .map_err(|_| ::std::fmt::Error)?;
+                let value = $crate::api::Value::new(inner as *mut jl_value_t)
+                    .map_err(|_| ::std::fmt::Error)?;
+
+                let string = jl_string.call1(&value)
+                    .map_err(|_| ::std::fmt::Error)?;
+                let string = String::try_from(&string)
+                    .map_err(|_| ::std::fmt::Error)?;
+
+                write!(f, "{}", string)
             }
         }
     }
@@ -107,7 +146,8 @@ impl Value {
 
     pub fn expand(&self) -> Result<Value> {
         let raw = self.lock()?;
-        let raw = unsafe { jl_call!(jl_expand, raw) };
+        let raw = unsafe { jl_expand(raw) };;
+        jl_catch!();
         Value::new(raw)
     }
 
@@ -376,6 +416,7 @@ macro_rules! unbox_simple {
                     let ret = val.lock()
                         .map(|v| unsafe { concat_idents!(jl_unbox_, $t1)(v) })
                         .map_err(From::from);
+                    jl_catch!();
                     match ret {
                         Ok($v) => Ok($fn),
                         Err(x) => Err(x),
@@ -419,3 +460,32 @@ unbox_simple!(uint64 => u64);
 unbox_simple!(ulong => usize);
 unbox_simple!(float32 => f32);
 unbox_simple!(float64 => f64);
+
+impl<'a> TryFrom<&'a Value> for String {
+    type Error = Error;
+    fn try_from(val: &Value) -> Result<String> {
+        if val.is_string() {
+            let ret: *mut i8 = unsafe {
+                let name = ::std::ffi::CString::new("pointer")?;
+                let name = name.as_ptr();
+                let jl_pointer = jl_get_function(jl_base_module, name);;
+                jl_catch!();
+                let jl_pointer = Function::new(jl_pointer)?;
+
+                let cpointer = jl_pointer.call1(val)?;
+                cpointer.lock()
+                    .map(|v| unsafe { jl_unbox_voidpointer(v) as *mut i8 })?
+            };
+            jl_catch!();
+
+            let cstr = unsafe {
+                CStr::from_ptr(ret)
+            };
+            cstr.to_owned()
+                .into_string()
+                .map_err(From::from)
+        } else {
+            Err(Error::InvalidUnbox)
+        }
+    }
+}

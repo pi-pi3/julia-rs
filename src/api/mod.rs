@@ -7,18 +7,19 @@ use error::{Result, Error};
 use string::IntoCString;
 
 #[macro_export]
-macro_rules! jl_call {
-    ($fun:path) => {
-        jl_call!($fun,);
+macro_rules! jl_catch {
+    () => {
+        jl_catch!(|ex| { ex });
     };
-    ($fun:path, $( $arg:expr ),*) => {
+    (|$ex:ident| $body:expr) => {
+        jl_catch!(|$ex -> $crate::error::Error::UnhandledException| $crate::error::Error::UnhandledException($body));
+    };
+    (|$ex:ident -> $t:ty| $body:expr) => {
+        #[allow(unused_variables)] // this shouldn't be necessary
         {
-            let ret = $fun( $( $arg ),* );
-            let ex = $crate::api::Exception::catch();
-            if let Some(ex) = ex {
-                return Err($crate::error::Error::UnhandledException(ex));
+            if let Some($ex) = $crate::api::Exception::catch() {
+                return Err($body);
             }
-            ret
         }
     }
 }
@@ -53,8 +54,9 @@ impl Julia {
         }
 
         unsafe {
-            jl_call!(jl_init);
+            jl_init();
         }
+        jl_catch!();
 
         let main = unsafe { Module::new_unchecked(jl_main_module) };
         let core = unsafe { Module::new_unchecked(jl_core_module) };
@@ -101,13 +103,9 @@ impl Julia {
         let content = content.as_ptr();
 
         let raw = unsafe {
-            jl_call!(
-                jl_load_file_string,
-                content,
-                len,
-                ptr::null::<i8>() as *mut _
-            )
+            jl_load_file_string(content, len, ptr::null::<i8>() as *mut _)
         };
+        jl_catch!();
         Value::new(raw)
     }
 
@@ -116,7 +114,10 @@ impl Julia {
         let string = string.into_cstring();
         let string = string.as_ptr();
 
-        let raw = unsafe { jl_call!(jl_parse_string, string, len, 0, 0) };
+        let raw = unsafe {
+            jl_parse_string(string, len, 0, 0)
+        };
+        jl_catch!();
 
         Value::new(raw)
     }
@@ -125,7 +126,10 @@ impl Julia {
         let string = string.into_cstring();
         let string = string.as_ptr();
 
-        let ret = unsafe { jl_call!(jl_eval_string, string) };
+        let ret = unsafe {
+            jl_eval_string(string)
+        };
+        jl_catch!();
         Value::new(ret).map_err(|_| Error::EvalError)
     }
 }

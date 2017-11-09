@@ -5,7 +5,7 @@ use std::error;
 use std::io;
 use std::char::CharTryFromError;
 use std::string::FromUtf8Error;
-use std::ffi::{FromBytesWithNulError, IntoStringError};
+use std::ffi::{FromBytesWithNulError, IntoStringError, NulError};
 use std::sync::PoisonError;
 use std::rc::Rc;
 
@@ -24,6 +24,7 @@ pub enum Error {
     InvalidSymbol,
     JuliaInitialized,
     CStrError(FromBytesWithNulError),
+    CStringError(NulError),
     PoisonError,
     ResourceInUse,
     UTF8Error(CharTryFromError),
@@ -37,6 +38,7 @@ impl fmt::Display for Error {
         match *self {
             Error::UnhandledException(ref ex) => write!(f, "UnhandledException({})", ex),
             Error::CStrError(ref err) => write!(f, "CStrError({})", err),
+            Error::CStringError(ref err) => write!(f, "CStringError({})", err),
             Error::UTF8Error(ref err) => write!(f, "UTF8Error({})", err),
             Error::FromUTF8Error(ref err) => write!(f, "FromUTF8Error({})", err),
             Error::IntoStringError(ref err) => write!(f, "IntoStringError({})", err),
@@ -60,6 +62,7 @@ impl error::Error for Error {
             Error::InvalidSymbol => "the symbol contains invalid characters",
             Error::JuliaInitialized => "Julia was already initialized",
             Error::CStrError(ref err) => err.description(),
+            Error::CStringError(ref err) => err.description(),
             Error::PoisonError => "attempt to use a poisoned mutex",
             Error::ResourceInUse => "attempt to take ownership of a resource in use",
             Error::UTF8Error(ref err) => err.description(),
@@ -73,6 +76,7 @@ impl error::Error for Error {
         match *self {
             Error::UnhandledException(ref ex) => Some(ex),
             Error::CStrError(ref err) => Some(err),
+            Error::CStringError(ref err) => Some(err),
             Error::UTF8Error(ref err) => Some(err),
             Error::FromUTF8Error(ref err) => Some(err),
             Error::IntoStringError(ref err) => Some(err),
@@ -87,6 +91,12 @@ impl error::Error for Error {
 impl From<FromBytesWithNulError> for Error {
     fn from(err: FromBytesWithNulError) -> Error {
         Error::CStrError(err)
+    }
+}
+
+impl From<NulError> for Error {
+    fn from(err: NulError) -> Error {
+        Error::CStringError(err)
     }
 }
 
