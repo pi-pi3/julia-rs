@@ -56,18 +56,6 @@ fn main() {
     };
     let mut rl = Editor::<()>::new();
 
-    // TODO: replace by implementing Display on Value
-    let println = match jl.base().function("println") {
-        Ok(fun) => fun,
-        Err(err) => {
-            errprintln!(
-                "An error occurred while getting the `println` function:\n{}",
-                err
-            );
-            return;
-        }
-    };
-
     greet();
 
     loop {
@@ -96,7 +84,7 @@ fn main() {
         };
 
         if !ret.is_nothing() {
-            println.call1(&ret).expect("Fatal error occurred!");
+            println!("{}", ret);
         }
     }
 }
