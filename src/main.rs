@@ -66,14 +66,30 @@ fn greet() {
 
 fn set_history(jl: &mut Julia, ret: &Value) -> Result<(), usize> {
     let ans = jl.main().global("ans").unwrap_or_else(|_| Value::nothing());
-    let ans1 = jl.main().global("ans1").unwrap_or_else(|_| Value::nothing());
-    let ans2 = jl.main().global("ans2").unwrap_or_else(|_| Value::nothing());
-    let ans3 = jl.main().global("ans3").unwrap_or_else(|_| Value::nothing());
-    let ans4 = jl.main().global("ans4").unwrap_or_else(|_| Value::nothing());
-    let ans5 = jl.main().global("ans5").unwrap_or_else(|_| Value::nothing());
-    let ans6 = jl.main().global("ans6").unwrap_or_else(|_| Value::nothing());
-    let ans7 = jl.main().global("ans7").unwrap_or_else(|_| Value::nothing());
-    let ans8 = jl.main().global("ans8").unwrap_or_else(|_| Value::nothing());
+    let ans1 = jl.main().global("ans1").unwrap_or_else(
+        |_| Value::nothing(),
+    );
+    let ans2 = jl.main().global("ans2").unwrap_or_else(
+        |_| Value::nothing(),
+    );
+    let ans3 = jl.main().global("ans3").unwrap_or_else(
+        |_| Value::nothing(),
+    );
+    let ans4 = jl.main().global("ans4").unwrap_or_else(
+        |_| Value::nothing(),
+    );
+    let ans5 = jl.main().global("ans5").unwrap_or_else(
+        |_| Value::nothing(),
+    );
+    let ans6 = jl.main().global("ans6").unwrap_or_else(
+        |_| Value::nothing(),
+    );
+    let ans7 = jl.main().global("ans7").unwrap_or_else(
+        |_| Value::nothing(),
+    );
+    let ans8 = jl.main().global("ans8").unwrap_or_else(
+        |_| Value::nothing(),
+    );
     jl.main().set("ans", ret).map_err(|_| 0_usize)?;
     jl.main().set("ans1", &ans).map_err(|_| 1_usize)?;
     jl.main().set("ans2", &ans1).map_err(|_| 2_usize)?;
@@ -119,15 +135,15 @@ fn main() {
             Ok(line) => {
                 rl.add_history_entry(&*line);
                 line
-            },
+            }
             Err(ReadlineError::Eof) => {
                 println!("^D");
                 break;
-            },
+            }
             Err(ReadlineError::Interrupted) => {
                 println!("^C");
                 continue;
-            },
+            }
             Err(err) => {
                 errprintln!("Error: {}", err);
                 continue;

@@ -102,9 +102,7 @@ impl Julia {
         let content = content.into_cstring();
         let content = content.as_ptr();
 
-        let raw = unsafe {
-            jl_load_file_string(content, len, ptr::null::<i8>() as *mut _)
-        };
+        let raw = unsafe { jl_load_file_string(content, len, ptr::null::<i8>() as *mut _) };
         jl_catch!();
         Value::new(raw)
     }
@@ -114,9 +112,7 @@ impl Julia {
         let string = string.into_cstring();
         let string = string.as_ptr();
 
-        let raw = unsafe {
-            jl_parse_string(string, len, 0, 0)
-        };
+        let raw = unsafe { jl_parse_string(string, len, 0, 0) };
         jl_catch!();
 
         Value::new(raw)
@@ -126,9 +122,7 @@ impl Julia {
         let string = string.into_cstring();
         let string = string.as_ptr();
 
-        let ret = unsafe {
-            jl_eval_string(string)
-        };
+        let ret = unsafe { jl_eval_string(string) };
         jl_catch!();
         Value::new(ret).map_err(|_| Error::EvalError)
     }

@@ -12,9 +12,7 @@ impl Module {
         let module = self.lock()?;
         let sym = sym.into_symbol()?;
         let sym = sym.into_inner()?;
-        let raw = unsafe {
-            jl_get_global(module, sym)
-        };
+        let raw = unsafe { jl_get_global(module, sym) };
         jl_catch!();
         Value::new(raw)
     }
