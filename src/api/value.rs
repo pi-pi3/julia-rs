@@ -4,7 +4,7 @@ use std::ffi::CStr;
 
 use sys::*;
 use error::{Result, Error};
-use api::Function;
+use api::{Function, Datatype, IntoSymbol};
 
 pub trait JlValue<T>
 where
@@ -15,6 +15,52 @@ where
     fn lock(&self) -> Result<*mut T>;
     fn into_inner(self) -> Result<*mut T>;
     fn typename(&self) -> Result<String>;
+
+    fn datatype(&self) -> Result<Datatype> {
+        let raw = self.lock()? as *mut jl_value_t;
+        let dt = unsafe { jl_typeof(raw) };
+        jl_catch!();
+        Datatype::new(dt as *mut jl_datatype_t)
+    }
+
+    fn get<S: IntoSymbol>(&self, field: S) -> Result<Value> {
+        let raw = self.lock()? as *mut jl_value_t;
+        let field = field.into_symbol()?;
+        let field = field.lock()?;
+        let dt = self.datatype()?;
+        let dt = dt.lock()?;
+        let idx = unsafe { jl_field_index(dt, field, -1) };
+        jl_catch!();
+
+        if idx.is_negative() {
+            return Err(Error::InvalidSymbol);
+        }
+        let idx = idx as usize;
+
+        let value = unsafe { jl_get_nth_field(raw, idx) };
+        jl_catch!();
+        Value::new(value)
+    }
+
+    fn set<S: IntoSymbol>(&self, field: S, value: Value) -> Result<()> {
+        let raw = self.lock()? as *mut jl_value_t;
+        let field = field.into_symbol()?;
+        let field = field.lock()?;
+        let dt = self.datatype()?;
+        let dt = dt.lock()?;
+        let idx = unsafe { jl_field_index(dt, field, -1) };
+        jl_catch!();
+
+        if idx.is_negative() {
+            return Err(Error::InvalidSymbol);
+        }
+        let idx = idx as usize;
+
+        let value = value.lock()?;
+        unsafe { jl_set_nth_field(raw, idx, value) };
+        jl_catch!();
+        Ok(())
+    }
 
     fn from_value<U, A: JlValue<U>>(val: A) -> Result<Self> {
         let raw = val.into_inner()? as *mut T;
