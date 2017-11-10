@@ -26,6 +26,8 @@ macro_rules! jl_catch {
 
 #[macro_use]
 pub mod value;
+#[macro_use]
+pub mod array;
 pub mod function;
 pub mod sym;
 pub mod module;
@@ -33,6 +35,7 @@ pub mod datatype;
 pub mod exception;
 
 pub use self::value::{Value, JlValue};
+pub use self::array::{Array, Svec};
 pub use self::function::Function;
 pub use self::sym::{Symbol, IntoSymbol};
 pub use self::module::Module;
