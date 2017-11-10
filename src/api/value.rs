@@ -4,6 +4,7 @@ use std::ffi::CStr;
 
 use sys::*;
 use error::{Result, Error};
+use string::TryIntoString;
 use api::{Function, Datatype, IntoSymbol};
 
 pub trait JlValue<T>
@@ -14,7 +15,13 @@ where
     fn new(_inner: *mut T) -> Result<Self>;
     fn lock(&self) -> Result<*mut T>;
     fn into_inner(self) -> Result<*mut T>;
-    fn typename(&self) -> Result<String>;
+
+    fn typename(&self) -> Result<String> {
+        let raw = self.lock()? as *mut jl_value_t;
+        let t = unsafe { jl_typeof_str(raw) };
+        jl_catch!();
+        t.try_into_string()
+    }
 
     fn datatype(&self) -> Result<Datatype> {
         let raw = self.lock()? as *mut jl_value_t;
@@ -113,24 +120,6 @@ macro_rules! simple_jlvalue {
                     .into_inner()
                     .map(::std::ptr::Unique::as_ptr)
                     .map_err(From::from)
-            }
-
-            fn typename(&self) -> $crate::error::Result<String> {
-                use $crate::string::TryIntoString;
-                let result = self._inner
-                    .lock()
-                    .map(|ptr| {
-                        let t = unsafe {
-                            $crate::sys::jl_typeof_str(ptr.as_ptr() as *mut $crate::sys::jl_value_t)
-                        };
-                        jl_catch!();
-                        t.try_into_string()
-                    })
-                    .map_err(From::from);
-                match result {
-                    Ok(x) => x,
-                    Err(err) => Err(err),
-                }
             }
         }
 
