@@ -5,7 +5,7 @@ use std::ffi::CStr;
 use sys::*;
 use error::{Result, Error};
 use string::TryIntoString;
-use api::{Function, Datatype, IntoSymbol};
+use api::{Datatype, IntoSymbol};
 
 pub trait JlValue<T>
 where
@@ -500,21 +500,11 @@ impl<'a> TryFrom<&'a Value> for String {
     type Error = Error;
     fn try_from(val: &Value) -> Result<String> {
         if val.is_string() {
-            let ret: *mut i8 = unsafe {
-                let name = ::std::ffi::CString::new("pointer")?;
-                let name = name.as_ptr();
-                let jl_pointer = jl_get_function(jl_base_module, name);
-                jl_catch!();
-                let jl_pointer = Function::new(jl_pointer)?;
-
-                let cpointer = jl_pointer.call1(val)?;
-                cpointer.lock().map(|v| unsafe {
-                    jl_unbox_voidpointer(v) as *mut i8
-                })?
-            };
+            let val = val.lock()?;
+            let raw = unsafe { jl_string_ptr(val) };
             jl_catch!();
 
-            let cstr = unsafe { CStr::from_ptr(ret) };
+            let cstr = unsafe { CStr::from_ptr(raw) };
             cstr.to_owned().into_string().map_err(From::from)
         } else {
             Err(Error::InvalidUnbox)
