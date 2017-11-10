@@ -10,7 +10,8 @@ jlvalues! {
 impl Datatype {
     pub fn new_struct<I>(&self, params: I) -> Result<Value>
     where
-        I: IntoIterator<Item=Value> {
+        I: IntoIterator<Item = Value>,
+    {
         let mut paramv = vec![];
         for p in params {
             paramv.push(p.lock()?);
@@ -26,7 +27,8 @@ impl Datatype {
 
     pub fn new_array<I>(&self, params: I) -> Result<Array>
     where
-        I: IntoIterator<Item=Value> {
+        I: IntoIterator<Item = Value>,
+    {
         let mut paramv = vec![];
         for p in params {
             paramv.push(p.lock()?);
