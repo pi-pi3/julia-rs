@@ -11,7 +11,13 @@ macro_rules! jlvec {
     [] => {
         {
             use $crate::api::JlValue;
-            $crate::api::Svec::new(unsafe { $crate::sys::jl_svec(0) })
+            fn svec() -> $crate::error::Result<$crate::api::Svec> {
+                let raw = unsafe { $crate::sys::jl_svec(0) };
+                jl_catch!();
+                $crate::api::Svec::new(raw)
+            }
+
+            svec()
         }
     };
     [$elem:expr] => {
@@ -22,6 +28,7 @@ macro_rules! jlvec {
                 let raw = unsafe {
                     $crate::sys::jl_svec1(elem as *mut _)
                 };
+                jl_catch!();
                 $crate::api::Svec::new(raw)
             }
 
@@ -37,6 +44,7 @@ macro_rules! jlvec {
                 let raw = unsafe {
                     $crate::sys::jl_svec2(elem1 as *mut _, elem2 as *mut _)
                 };
+                jl_catch!();
                 $crate::api::Svec::new(raw)
             }
 
@@ -79,6 +87,7 @@ macro_rules! jlvec {
                 let raw = unsafe {
                     $crate::sys::jl_svec_fill($n, elem)
                 };
+                jl_catch!();
                 $crate::api::Svec::new(raw)
             }
 
