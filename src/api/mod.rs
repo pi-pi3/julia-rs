@@ -33,6 +33,7 @@ pub mod sym;
 pub mod module;
 pub mod datatype;
 pub mod exception;
+pub mod types;
 
 pub use self::value::{Value, JlValue};
 pub use self::array::{Array, Svec};
@@ -41,6 +42,7 @@ pub use self::sym::{Symbol, IntoSymbol};
 pub use self::module::Module;
 pub use self::datatype::Datatype;
 pub use self::exception::Exception;
+pub use self::types::*;
 
 pub struct Julia {
     main: Module,
