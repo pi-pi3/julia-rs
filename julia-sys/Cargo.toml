@@ -2,7 +2,7 @@
 name = "julia-sys"
 version = "0.1.0"
 authors = ["Szymon Walter <walter.szymon.98@gmail.com>"]
-license = "ZLIB License"
+license = "zlib/libpng icense"
 keywords = ["julia", "lang", "scripting", "ffi", "sys"]
 repository = "https://github.com/pi-pi3/julia-rs"
 homepage = "https://github.com/pi-pi3/julia-rs"
