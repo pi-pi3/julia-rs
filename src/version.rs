@@ -56,14 +56,46 @@ impl<'a> fmt::Display for Version<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if let Some(branch) = self.branch {
             if let Some(commit) = self.commit {
-                write!(f, r#"{} {}.{}.{} ({}-{})"#, self.name, self.major, self.minor, self.patch, branch, &commit[..7])
+                write!(
+                    f,
+                    r#"{} {}.{}.{} ({}-{})"#,
+                    self.name,
+                    self.major,
+                    self.minor,
+                    self.patch,
+                    branch,
+                    &commit[..7]
+                )
             } else {
-                write!(f, r#"{} {}.{}.{} ({})"#, self.name, self.major, self.minor, self.patch, branch)
+                write!(
+                    f,
+                    r#"{} {}.{}.{} ({})"#,
+                    self.name,
+                    self.major,
+                    self.minor,
+                    self.patch,
+                    branch
+                )
             }
         } else if let Some(commit) = self.commit {
-            write!(f, r#"{} {}.{}.{} ({})"#, self.name, self.major, self.minor, self.patch, &commit[..7])
+            write!(
+                f,
+                r#"{} {}.{}.{} ({})"#,
+                self.name,
+                self.major,
+                self.minor,
+                self.patch,
+                &commit[..7]
+            )
         } else {
-            write!(f, r#"{} {}.{}.{}"#, self.name, self.major, self.minor, self.patch)
+            write!(
+                f,
+                r#"{} {}.{}.{}"#,
+                self.name,
+                self.major,
+                self.minor,
+                self.patch
+            )
         }
     }
 }

@@ -42,7 +42,7 @@ macro_rules! errprintln {
 
 fn greet(jl: &Julia) {
     println!(
-r#"               {}
+        r#"               {}
    {}       _ {}{}{}                   |  A fresh approach to technical computing
   {}     | {} {}                  |  Documentation: https://docs.julialang.org
    _ _   _| |_  __ _     _  _  __    |  Rusty REPL based on official Julia REPL
