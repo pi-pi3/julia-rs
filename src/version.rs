@@ -6,8 +6,8 @@ const MAJOR: &str = env!("CARGO_PKG_VERSION_MAJOR");
 const MINOR: &str = env!("CARGO_PKG_VERSION_MINOR");
 const PATCH: &str = env!("CARGO_PKG_VERSION_PATCH");
 const RELEASE: bool = false;
-const BRANCH: Option<&str> = None;
-const COMMIT: Option<&str> = None;
+
+include!(concat!(env!("OUT_DIR"), "/git_version.rs"));
 
 #[derive(Clone)]
 pub struct Version<'a> {
