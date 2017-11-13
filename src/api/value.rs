@@ -238,6 +238,24 @@ impl Value {
         self.lock().map(f).unwrap_or_else(op)
     }
 
+    pub fn is_ok(&self) -> bool {
+        !self._inner.is_poisoned()
+    }
+
+    pub fn isa(&self, other: &Datatype) -> Result<bool> {
+        let p = unsafe {
+            jl_isa(self.lock()?, other.lock()? as *mut _) != 0
+        };
+        Ok(p)
+    }
+
+    pub fn types_equal(&self, other: &Value) -> Result<bool> {
+        let p = unsafe {
+            jl_types_equal(self.lock()?, other.lock()?) != 0
+        };
+        Ok(p)
+    }
+
     pub fn is_nothing(&self) -> bool {
         self.map_or(|v| unsafe { jl_is_nothing(v) }, false)
     }
