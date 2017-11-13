@@ -88,7 +88,7 @@ impl Number for Float64 {}
 impl Real for Float64 {}
 impl AbstractFloat for Float64 {}
 
-#[derive(Clone, Copy, Hash, PartialEq, PartialOrd, Eq, Ord)]
+#[derive(Default, Clone, Copy, Hash, PartialEq, PartialOrd, Eq, Ord)]
 pub struct Complex<T: Number> {
     pub a: T,
     pub b: T,
@@ -108,7 +108,7 @@ impl<T: Number + fmt::Display> fmt::Display for Complex<T> {
 
 impl<T: Number> Number for Complex<T> {}
 
-#[derive(Clone, Copy, Hash, PartialEq, PartialOrd, Eq, Ord)]
+#[derive(Default, Clone, Copy, Hash, PartialEq, PartialOrd, Eq, Ord)]
 pub struct Rational<T: Number + Real + Integer> {
     pub num: T,
     pub den: T,
