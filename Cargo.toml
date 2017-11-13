@@ -17,10 +17,7 @@ Idiomatic and safe Julia bindings for Rust
 libc = "0.2"
 smallvec = "0.5"
 colored = "1.6"
-
-[dependencies.rustyline]
-version = "1.0"
-path = "rustyline"
+liner = "0.4"
 
 [dependencies.julia-sys]
 version = "0.1"

@@ -1,12 +1,16 @@
 
+#![feature(unicode)]
+
 extern crate julia;
 extern crate colored;
-extern crate rustyline;
+extern crate liner;
+extern crate std_unicode;
 
 use std::env;
+use std::io::ErrorKind;
+use std_unicode::str::UnicodeStr;
 
-use rustyline::{Config, Editor, EditMode, KeyPress, Cmd, CompletionType};
-use rustyline::error::ReadlineError;
+use liner::{Context, History, KeyBindings};
 use colored::*;
 
 use julia::api::{Julia, Value};
@@ -114,45 +118,51 @@ fn main() {
         }
     };
 
-    greet(&jl);
+    jl.eval_string("exit() = println(\"Sorry! Use C-D to exit.\")")
+        .expect("Couldn't override `exit()`");
+    jl.eval_string("exit(s) = exit()").expect(
+        "Couldn't override `exit(status)`",
+    );
 
-    let config = Config::builder()
-        .completion_type(CompletionType::List)
-        .history_ignore_space(true)
-        .edit_mode(EditMode::Emacs)
-        .build();
-    let mut rl = Editor::<()>::with_config(config);
-    rl.bind_sequence(KeyPress::Up, Cmd::PreviousHistory);
-    rl.bind_sequence(KeyPress::Down, Cmd::NextHistory);
+    greet(&jl);
 
     let home = env::var("HOME").unwrap();
     let history_path = format!("{}/.julia-rs_history", home);
+    let mut history = History::new();
 
-    rl.load_history(&history_path).ok();
+    history.set_file_name(Some(history_path));
+    history.load_history().ok();
 
+    let mut con = Context {
+        history: history,
+        completer: None,
+        word_divider_fn: Box::new(liner::get_buffer_words),
+        key_bindings: KeyBindings::Emacs,
+    };
     let ps1 = format!("{} ", "julia.rs>".bright_green().bold());
+
     loop {
-        let line = rl.readline(&ps1);
+        let line = con.read_line(&*ps1, &mut |_| {});
         let line = match line {
-            Ok(line) => {
-                rl.add_history_entry(&*line);
-                line
-            }
-            Err(ReadlineError::Eof) => {
-                println!("^D");
-                break;
-            }
-            Err(ReadlineError::Interrupted) => {
-                println!("^C");
-                continue;
-            }
+            Ok(ref line) if line.is_empty() || line.is_whitespace() => continue,
+            Ok(line) => line,
             Err(err) => {
-                errprintln!("Error: {}", err);
-                continue;
+                match err.kind() {
+                    ErrorKind::Interrupted => continue,
+                    ErrorKind::UnexpectedEof => break,
+                    err => {
+                        eprintln!("Error: {:?}", err);
+                        continue;
+                    }
+                }
             }
         };
 
-        let ret = jl.eval_string(line);
+        let ret = jl.eval_string(line.clone());
+        if let Err(err) = con.history.push(line.into()) {
+            eprintln!("Error: could not write line to history file\n > {}", err);
+        }
+
         let ret = match ret {
             Ok(ret) => ret,
             Err(Error::UnhandledException(ex)) => {
@@ -173,5 +183,7 @@ fn main() {
             eprintln!("Warning: couldn't set answer history at {}", i);
         }
     }
-    rl.save_history(&history_path).ok();
+
+    let Context { mut history, .. } = con;
+    history.commit_history();
 }
