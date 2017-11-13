@@ -38,7 +38,9 @@ impl Array {
     }
 
     pub fn index_set(&self, idx: usize, x: &Value) -> Result<()> {
-        unsafe { jl_array_ptr_set(self.lock()?, idx, x.lock()?); }
+        unsafe {
+            jl_array_ptr_set(self.lock()?, idx, x.lock()?);
+        }
         Ok(())
     }
 }
@@ -70,7 +72,9 @@ impl ByteArray {
     }
 
     pub fn index_set(&self, idx: usize, x: u8) -> Result<()> {
-        unsafe { jl_array_uint8_set(self.lock()?, idx, x); }
+        unsafe {
+            jl_array_uint8_set(self.lock()?, idx, x);
+        }
         Ok(())
     }
 }
@@ -102,7 +106,9 @@ impl Svec {
     }
 
     pub fn index_set(&self, idx: usize, x: &Value) -> Result<()> {
-        unsafe { jl_svecset(self.lock()?, idx, x.lock()?); }
+        unsafe {
+            jl_svecset(self.lock()?, idx, x.lock()?);
+        }
         Ok(())
     }
 }
