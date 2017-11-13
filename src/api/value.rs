@@ -4,7 +4,7 @@ use std::ffi::CStr;
 
 use sys::*;
 use error::{Result, Error};
-use string::TryIntoString;
+use string::{IntoCString, TryIntoString};
 use api::{Datatype, Function, IntoSymbol};
 
 pub trait JlValue<T>
@@ -18,16 +18,18 @@ where
 
     fn add_finalizer(&self, f: &Function) -> Result<()> {
         unsafe {
-            jl_gc_add_finalizer(self.lock()?, f.lock()?);
+            jl_gc_add_finalizer(self.lock()? as *mut _, f.lock()?);
         }
         jl_catch!();
+        Ok(())
     }
 
     fn finalize(self) -> Result<()> {
         unsafe {
-            jl_finalize(self.into_inner()?);
+            jl_finalize(self.into_inner()? as *mut _);
         }
         jl_catch!();
+        Ok(())
     }
 
     fn typename(&self) -> Result<String> {
@@ -190,7 +192,7 @@ jlvalues! {
 }
 
 impl Expr {
-    pub fn with_string<S: IntoCString>(string: S) -> Result<Expr> {
+    pub fn with_string(string: &str) -> Result<Expr> {
         let len = string.len();
         let string = string.into_cstring();
         let string = string.as_ptr();
@@ -198,7 +200,7 @@ impl Expr {
         let raw = unsafe { jl_parse_string(string, len, 0, 0) };
         jl_catch!();
 
-        Expr::new(raw)
+        Expr::new(raw as *mut _)
     }
 
     pub fn expand(&self) -> Result<Value> {

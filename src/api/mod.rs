@@ -54,6 +54,7 @@ impl Gc {
             jl_gc_enable(p as i32);
         }
         jl_catch!();
+        Ok(())
     }
 
     pub fn is_enabled(&self) -> bool {
@@ -67,6 +68,7 @@ impl Gc {
             jl_gc_collect(full as i32);
         }
         jl_catch!();
+        Ok(())
     }
 
     pub fn total_bytes(&self) -> isize {
