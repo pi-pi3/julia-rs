@@ -7,7 +7,7 @@ readme = "README.md"
 keywords = ["julia", "lang", "scripting", "script"]
 repository = "https://github.com/pi-pi3/julia-rs"
 homepage = "https://github.com/pi-pi3/julia-rs"
-documentation = "https://docs.rs/julia-rs"
+documentation = "https://docs.rs/julia"
 categories = ["api-bindings"]
 description = """
 Idiomatic and safe Julia bindings for Rust
