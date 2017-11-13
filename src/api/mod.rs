@@ -32,6 +32,7 @@ pub mod function;
 pub mod sym;
 pub mod module;
 pub mod datatype;
+pub mod task;
 pub mod exception;
 pub mod types;
 
@@ -41,6 +42,7 @@ pub use self::function::Function;
 pub use self::sym::{Symbol, IntoSymbol};
 pub use self::module::Module;
 pub use self::datatype::Datatype;
+pub use self::task::Task;
 pub use self::exception::Exception;
 pub use self::types::*;
 
