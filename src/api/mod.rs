@@ -58,9 +58,7 @@ impl Gc {
     }
 
     pub fn is_enabled(&self) -> bool {
-        unsafe {
-            jl_gc_is_enabled() != 0
-        }
+        unsafe { jl_gc_is_enabled() != 0 }
     }
 
     pub fn collect(&self, full: bool) -> Result<()> {
@@ -72,21 +70,15 @@ impl Gc {
     }
 
     pub fn total_bytes(&self) -> isize {
-        unsafe {
-            jl_gc_total_bytes() as isize
-        }
+        unsafe { jl_gc_total_bytes() as isize }
     }
 
     pub fn total_hrtime(&self) -> usize {
-        unsafe {
-            jl_gc_total_hrtime() as usize
-        }
+        unsafe { jl_gc_total_hrtime() as usize }
     }
 
     pub fn diff_total_bytes(&self) -> isize {
-        unsafe {
-            jl_gc_diff_total_bytes() as isize
-        }
+        unsafe { jl_gc_diff_total_bytes() as isize }
     }
 }
 

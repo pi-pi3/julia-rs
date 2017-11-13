@@ -9,9 +9,7 @@ jlvalues! {
 
 impl Task {
     pub fn with_function(&self, start: &Function) -> Result<Task> {
-        let raw = unsafe {
-            jl_new_task(start.lock()?, 0)
-        };
+        let raw = unsafe { jl_new_task(start.lock()?, 0) };
         jl_catch!();
         Task::new(raw)
     }
