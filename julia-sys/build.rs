@@ -7,7 +7,7 @@ use std::path::PathBuf;
 fn main() {
     println!("cargo:rustc-link-lib=julia");
 
-    env::set_var("C_INCLUDE_PATH", "/usr/include/julia");
+    env::set_var("C_INCLUDE_PATH", "./julia");
 
     let bindings = bindgen::Builder::default()
         .header("wrapper.h")
