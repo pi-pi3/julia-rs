@@ -11,6 +11,7 @@ use colored::*;
 
 use julia::api::{Julia, Value};
 use julia::error::Error;
+use julia::version;
 
 macro_rules! errprintln {
     ($msg:expr) => { eprintln!("{}", msg.bright_red().bold()); };
@@ -39,17 +40,16 @@ macro_rules! errprintln {
     }
 }
 
-fn greet() {
+fn greet(jl: &Julia) {
     println!(
-        r#"
-               {}
-   {}       _ {}{}{}
-  {}     | {} {}
-   _ _   _| |_  __ _     _  _  __
-  | | | | | | |/ _` |   | |/ // _)
-  | | |_| | | | (_| | {} |  ,/ \_ \
- _/ |\__'_|_|_|\__'_|{}|_|   (__/
-|__/
+r#"               {}
+   {}       _ {}{}{}                   |  A fresh approach to technical computing
+  {}     | {} {}                  |  Documentation: https://docs.julialang.org
+   _ _   _| |_  __ _     _  _  __    |  Rusty REPL based on official Julia REPL
+  | | | | | | |/ _` |   | |/ // _)   |
+  | | |_| | | | (_| | {} |  ,/ \_ \   |  {}
+ _/ |\__'_|_|_|\__'_|{}|_|   (__/   |  {}
+|__/                                 |
 "#,
         "_".bright_green().bold(),
         "_".bright_blue().bold(),
@@ -60,7 +60,9 @@ fn greet() {
         "(_)".bright_red().bold(),
         "(_)".bright_magenta().bold(),
         "_".bright_yellow().bold(),
-        "(_)".bright_yellow().bold()
+        jl.version(),
+        "(_)".bright_yellow().bold(),
+        version::get()
     );
 }
 
@@ -112,7 +114,7 @@ fn main() {
         }
     };
 
-    greet();
+    greet(&jl);
 
     let config = Config::builder()
         .completion_type(CompletionType::List)

@@ -1,9 +1,11 @@
 
-use std::io::Read;
 use std::ptr;
+use std::io::Read;
+use std::ffi::CStr;
 
 use sys::*;
 use error::{Result, Error};
+use version::Version;
 use string::IntoCString;
 
 #[macro_export]
@@ -115,6 +117,33 @@ impl Julia {
             status: 0,
             gc: Gc,
         })
+    }
+
+    pub fn version(&self) -> Version {
+        unsafe {
+            let major = jl_ver_major() as u32;
+            let minor = jl_ver_minor() as u32;
+            let patch = jl_ver_patch() as u32;
+            let release = jl_ver_is_release() != 0;
+            let branch = jl_git_branch();
+            let commit = jl_git_commit();
+            let mut branch = CStr::from_ptr(branch).to_str().ok();
+            let commit = CStr::from_ptr(commit).to_str().ok();
+
+            if branch == Some("(no branch)") {
+                branch = None;
+            }
+
+            Version {
+                name: "julia",
+                major: major,
+                minor: minor,
+                patch: patch,
+                release: release,
+                branch: branch,
+                commit: commit,
+            }
+        }
     }
 
     pub fn gc(&self) -> &Gc {

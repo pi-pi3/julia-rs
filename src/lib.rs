@@ -15,6 +15,7 @@ pub mod sys;
 pub mod error;
 #[macro_use]
 pub mod string;
+pub mod version;
 
 #[macro_use]
 pub mod api;
