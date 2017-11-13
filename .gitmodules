@@ -1,0 +1,3 @@
+[submodule "rustyline"]
+	path = rustyline
+	url = https://github.com/kkawakam/rustyline
