@@ -185,19 +185,33 @@ macro_rules! jlvalues {
 }
 
 jlvalues! {
+    pub struct Expr(jl_expr_t);
     pub struct Value(jl_value_t);
+}
+
+impl Expr {
+    pub fn with_string<S: IntoCString>(string: S) -> Result<Expr> {
+        let len = string.len();
+        let string = string.into_cstring();
+        let string = string.as_ptr();
+
+        let raw = unsafe { jl_parse_string(string, len, 0, 0) };
+        jl_catch!();
+
+        Expr::new(raw)
+    }
+
+    pub fn expand(&self) -> Result<Value> {
+        let raw = self.lock()?;
+        let raw = unsafe { jl_expand(raw as *mut _) };
+        jl_catch!();
+        Value::new(raw)
+    }
 }
 
 impl Value {
     pub fn nothing() -> Value {
         unsafe { Value::new_unchecked(jl_nothing) }
-    }
-
-    pub fn expand(&self) -> Result<Value> {
-        let raw = self.lock()?;
-        let raw = unsafe { jl_expand(raw) };
-        jl_catch!();
-        Value::new(raw)
     }
 
     pub fn map<T, F>(&self, f: F) -> Result<T>

@@ -160,17 +160,6 @@ impl Julia {
         Value::new(raw)
     }
 
-    pub fn parse_string(string: &str) -> Result<Value> {
-        let len = string.len();
-        let string = string.into_cstring();
-        let string = string.as_ptr();
-
-        let raw = unsafe { jl_parse_string(string, len, 0, 0) };
-        jl_catch!();
-
-        Value::new(raw)
-    }
-
     pub fn eval_string<S: IntoCString>(&mut self, string: S) -> Result<Value> {
         let string = string.into_cstring();
         let string = string.as_ptr();

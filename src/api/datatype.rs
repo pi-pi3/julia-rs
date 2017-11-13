@@ -5,6 +5,8 @@ use api::{Value, JlValue, Array};
 
 jlvalues! {
     pub struct Datatype(jl_datatype_t);
+    pub struct Union(jl_uniontype_t);
+    pub struct UnionAll(jl_unionall_t);
 }
 
 impl Datatype {
