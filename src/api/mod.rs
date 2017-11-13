@@ -34,7 +34,7 @@ pub mod module;
 pub mod datatype;
 pub mod task;
 pub mod exception;
-pub mod types;
+pub mod primitive;
 
 pub use self::value::{Value, JlValue};
 pub use self::array::{Array, Svec};
@@ -44,7 +44,7 @@ pub use self::module::Module;
 pub use self::datatype::Datatype;
 pub use self::task::Task;
 pub use self::exception::Exception;
-pub use self::types::*;
+pub use self::primitive::*;
 
 pub struct Gc;
 
