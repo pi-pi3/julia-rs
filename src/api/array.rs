@@ -17,6 +17,10 @@ impl Array {
         Ok(len)
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len().unwrap_or(0) == 0
+    }
+
     pub fn as_vec(&self) -> Result<Vec<Value>> {
         let len = self.len()?;
         let ptr = unsafe { jl_array_data(self.lock()?) as *mut *mut jl_value_t };
@@ -45,11 +49,15 @@ impl ByteArray {
         Ok(len)
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len().unwrap_or(0) == 0
+    }
+
     pub fn as_slice(&self) -> Result<&[u8]> {
         let len = self.len()?;
         let ptr = unsafe { jl_array_data(self.lock()?) as *mut u8 };
         let slice = unsafe { slice::from_raw_parts(ptr, len) };
-        Ok((slice))
+        Ok(slice)
     }
 
     pub fn as_vec(&self) -> Result<Vec<u8>> {
@@ -71,6 +79,10 @@ impl Svec {
     pub fn len(&self) -> Result<usize> {
         let len = unsafe { jl_svec_len(self.lock()?) };
         Ok(len)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len().unwrap_or(0) == 0
     }
 
     pub fn as_vec(&self) -> Result<Vec<Value>> {
