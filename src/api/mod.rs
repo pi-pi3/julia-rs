@@ -44,12 +44,55 @@ pub use self::datatype::Datatype;
 pub use self::exception::Exception;
 pub use self::types::*;
 
+pub struct Gc;
+
+impl Gc {
+    pub fn enable(&self, p: bool) -> Result<()> {
+        unsafe {
+            jl_gc_enable(p as i32);
+        }
+        jl_catch!();
+    }
+
+    pub fn is_enabled(&self) -> bool {
+        unsafe {
+            jl_gc_is_enabled() != 0
+        }
+    }
+
+    pub fn collect(&self, full: bool) -> Result<()> {
+        unsafe {
+            jl_gc_collect(full as i32);
+        }
+        jl_catch!();
+    }
+
+    pub fn total_bytes(&self) -> isize {
+        unsafe {
+            jl_gc_total_bytes() as isize
+        }
+    }
+
+    pub fn total_hrtime(&self) -> usize {
+        unsafe {
+            jl_gc_total_hrtime() as usize
+        }
+    }
+
+    pub fn diff_total_bytes(&self) -> isize {
+        unsafe {
+            jl_gc_diff_total_bytes() as isize
+        }
+    }
+}
+
 pub struct Julia {
     main: Module,
     core: Module,
     base: Module,
     top: Module,
     status: i32,
+    gc: Gc,
 }
 
 impl Julia {
@@ -74,7 +117,12 @@ impl Julia {
             base: base,
             top: top,
             status: 0,
+            gc: Gc,
         })
+    }
+
+    pub fn gc(&self) -> &Gc {
+        &self.gc
     }
 
     pub fn is_initialized() -> bool {

@@ -5,7 +5,7 @@ use std::ffi::CStr;
 use sys::*;
 use error::{Result, Error};
 use string::TryIntoString;
-use api::{Datatype, IntoSymbol};
+use api::{Datatype, Function, IntoSymbol};
 
 pub trait JlValue<T>
 where
@@ -15,6 +15,20 @@ where
     fn new(_inner: *mut T) -> Result<Self>;
     fn lock(&self) -> Result<*mut T>;
     fn into_inner(self) -> Result<*mut T>;
+
+    fn add_finalizer(&self, f: &Function) -> Result<()> {
+        unsafe {
+            jl_gc_add_finalizer(self.lock()?, f.lock()?);
+        }
+        jl_catch!();
+    }
+
+    fn finalize(self) -> Result<()> {
+        unsafe {
+            jl_finalize(self.into_inner()?);
+        }
+        jl_catch!();
+    }
 
     fn typename(&self) -> Result<String> {
         let raw = self.lock()? as *mut jl_value_t;
