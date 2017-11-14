@@ -51,4 +51,6 @@ fn main() {
 # License
 
 julia-rs is licensed under the zlib/libpng license. See
-**[LICENSE.md](/LICENSE.md)** or [zlib.net/zlib\_license.html](http://www.zlib.net/zlib_license.html) for details.
+**[LICENSE](/LICENSE)** or
+[zlib.net/zlib\_license.html](http://www.zlib.net/zlib_license.html)
+for details.
