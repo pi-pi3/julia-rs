@@ -632,6 +632,13 @@ box_simple!(usize => ulong);
 box_simple!(f32 => float32);
 box_simple!(f64 => float64);
 
+impl<S: IntoCString> From<S> for Value {
+    fn from(cstr: S) -> Value {
+        let cstr = cstr.into_cstring();
+        unsafe { Value::new_unchecked(jl_cstr_to_string(cstr.as_ptr())) }
+    }
+}
+
 unbox_simple!(bool => bool, |val| val != 0);
 unbox_simple!(uint32 => char, |val| char::try_from(val)?);
 
