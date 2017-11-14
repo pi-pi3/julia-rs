@@ -201,13 +201,19 @@ impl Julia {
     }
 
     /// Loads a Julia script from any Read without evaluating it.
-    pub fn load<R: Read>(r: &mut R) -> Result<Value> {
+    pub fn load<R: Read, S: IntoCString>(&mut self, r: &mut R, name: Option<S>) -> Result<Value> {
         let mut content = String::new();
         let len = r.read_to_string(&mut content)?;
         let content = content.into_cstring();
         let content = content.as_ptr();
 
-        let raw = unsafe { jl_load_file_string(content, len, ptr::null::<i8>() as *mut _) };
+        let name = name
+            .map(|s| s.into_cstring())
+            .unwrap_or("string".into_cstring());
+        let name = name.as_ptr();
+
+        //let raw = unsafe { jl_load_file_string(content, len, ptr::null::<i8>() as *mut _) };
+        let raw = unsafe { jl_load_file_string(content, len, name as *mut _) };
         jl_catch!();
         Value::new(raw)
     }
