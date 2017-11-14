@@ -46,7 +46,21 @@ fn main() {
 
 # TODO
 
-- TODO list
+## pre 0.3
+- Safe wrappers for all remaining important functions.  
+  See **[ROADMAP.md](/ROADMAP.md)** for details.
+
+## pre 0.4
+- Fix any and all memory leaks and overflows at the ffi boundary.
+
+## pre 0.5
+- Standardize.
+- Test.
+- Add more thorough examples.
+
+## pre 0.6
+- Standardize documentation.
+- Document everything thouroughly.
 
 # License
 
