@@ -1,4 +1,6 @@
 
+//! Module providing a wrapper for the native Julia module object.
+
 use sys::*;
 use error::Result;
 use super::{Value, JlValue, Function, IntoSymbol};
@@ -8,6 +10,7 @@ jlvalues! {
 }
 
 impl Module {
+    /// Returns a global bound to the symbol `sym`.
     pub fn global<S: IntoSymbol>(&self, sym: S) -> Result<Value> {
         let module = self.lock()?;
         let sym = sym.into_symbol()?;
@@ -17,12 +20,14 @@ impl Module {
         Value::new(raw)
     }
 
+    /// Returns a function bound to the symbol `sym`.
     pub fn function<S: IntoSymbol>(&self, sym: S) -> Result<Function> {
         self.global(sym.into_symbol()?).and_then(
             Function::from_value,
         )
     }
 
+    /// Binds `value` to the symbol `sym` in this module.
     pub fn set<S: IntoSymbol>(&self, sym: S, value: &Value) -> Result<()> {
         let module = self.lock()?;
         let sym = sym.into_symbol()?;
@@ -35,6 +40,7 @@ impl Module {
         Ok(())
     }
 
+    /// Binds `value` to the symbol `sym` in this module as a constant.
     pub fn set_const<S: IntoSymbol>(&self, sym: S, value: &Value) -> Result<()> {
         let module = self.lock()?;
         let sym = sym.into_symbol()?;

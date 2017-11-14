@@ -1,4 +1,6 @@
 
+//! Module providing a wrapper for the native Julia function object.
+
 use smallvec::SmallVec;
 
 use sys::*;
@@ -10,6 +12,7 @@ jlvalues! {
 }
 
 impl Function {
+    /// Call with a sequence of Value-s.
     pub fn call<'a, I>(&self, args: I) -> Result<Value>
     where
         I: IntoIterator<Item = &'a Value>,
@@ -24,24 +27,28 @@ impl Function {
         Value::new(ret).map_err(|_| Error::CallError)
     }
 
+    /// Call with 0 Value-s.
     pub fn call0(&self) -> Result<Value> {
         let ret = unsafe { jl_call0(self.lock()?) };
         jl_catch!();
         Value::new(ret).map_err(|_| Error::CallError)
     }
 
+    /// Call with 1 Value.
     pub fn call1(&self, arg1: &Value) -> Result<Value> {
         let ret = unsafe { jl_call1(self.lock()?, arg1.lock()?) };
         jl_catch!();
         Value::new(ret).map_err(|_| Error::CallError)
     }
 
+    /// Call with 2 Value-s.
     pub fn call2(&self, arg1: &Value, arg2: &Value) -> Result<Value> {
         let ret = unsafe { jl_call2(self.lock()?, arg1.lock()?, arg2.lock()?) };
         jl_catch!();
         Value::new(ret).map_err(|_| Error::CallError)
     }
 
+    /// Call with 3 Value-s.
     pub fn call3(&self, arg1: &Value, arg2: &Value, arg3: &Value) -> Result<Value> {
         let ret = unsafe { jl_call3(self.lock()?, arg1.lock()?, arg2.lock()?, arg3.lock()?) };
         jl_catch!();

@@ -1,14 +1,25 @@
 
+//! Module providing Rusty versions of the native Julia primitive types
+//! and abstract types describing them.
+//!
+//! Char and all Number subtypes are included, except for Irrational.
+
 use std::fmt;
 
+/// Corresponds to the Number abstract type.
 pub trait Number {}
 
+/// Corresponds to the Real abstract type.
 pub trait Real: Number {}
 
+/// Corresponds to the AbstractFloat abstract type.
 pub trait AbstractFloat: Number + Real {}
+/// Corresponds to the Integer abstract type.
 pub trait Integer: Number + Real {}
 
+/// Corresponds to the Signed abstract type.
 pub trait Signed: Number + Real + Integer {}
+/// Corresponds to the Unsigned abstract type.
 pub trait Unsigned: Number + Real + Integer {}
 
 pub type Bool = bool;
@@ -88,26 +99,28 @@ impl Number for Float64 {}
 impl Real for Float64 {}
 impl AbstractFloat for Float64 {}
 
+/// Corresponds to the Complex{T<:Real} generic type.
 #[derive(Default, Clone, Copy, Hash, PartialEq, PartialOrd, Eq, Ord)]
-pub struct Complex<T: Number> {
+pub struct Complex<T: Number + Real> {
     pub a: T,
     pub b: T,
 }
 
-impl<T: Number + fmt::Debug> fmt::Debug for Complex<T> {
+impl<T: Number + Real + fmt::Debug> fmt::Debug for Complex<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?} + {:?}im", self.a, self.b)
     }
 }
 
-impl<T: Number + fmt::Display> fmt::Display for Complex<T> {
+impl<T: Number + Real + fmt::Display> fmt::Display for Complex<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{} + {}im", self.a, self.b)
     }
 }
 
-impl<T: Number> Number for Complex<T> {}
+impl<T: Number + Real> Number for Complex<T> {}
 
+/// Corresponds to the Rational{T<:Integer} generic type.
 #[derive(Default, Clone, Copy, Hash, PartialEq, PartialOrd, Eq, Ord)]
 pub struct Rational<T: Number + Real + Integer> {
     pub num: T,

@@ -1,4 +1,6 @@
 
+//! Module providing wrappers for iteratable sequences.
+
 use std::slice;
 
 use sys::*;
@@ -12,15 +14,18 @@ jlvalues! {
 }
 
 impl Array {
+    /// Returns the length of the Array.
     pub fn len(&self) -> Result<usize> {
         let len = unsafe { jl_array_len(self.lock()?) };
         Ok(len)
     }
 
+    /// Checks if the Array is empty.
     pub fn is_empty(&self) -> bool {
         self.len().unwrap_or(0) == 0
     }
 
+    /// Constructs a Vec of Values from the Array.
     pub fn as_vec(&self) -> Result<Vec<Value>> {
         let len = self.len()?;
         let ptr = unsafe { jl_array_data(self.lock()?) as *mut *mut jl_value_t };
@@ -32,11 +37,13 @@ impl Array {
         Ok(vec)
     }
 
+    /// Returns the value at a specified index.
     pub fn index(&self, idx: usize) -> Result<Value> {
         let raw = unsafe { jl_array_ptr_ref(self.lock()?, idx) };
         Value::new(raw)
     }
 
+    /// Sets the value at a specified index.
     pub fn index_set(&self, idx: usize, x: &Value) -> Result<()> {
         unsafe {
             jl_array_ptr_set(self.lock()?, idx, x.lock()?);
@@ -46,15 +53,18 @@ impl Array {
 }
 
 impl ByteArray {
+    /// Returns the length of the ByteArray.
     pub fn len(&self) -> Result<usize> {
         let len = unsafe { jl_array_len(self.lock()?) };
         Ok(len)
     }
 
+    /// Checks if the ByteArray is empty.
     pub fn is_empty(&self) -> bool {
         self.len().unwrap_or(0) == 0
     }
 
+    /// Constructs a slice of bytes without allocating new space.
     pub fn as_slice(&self) -> Result<&[u8]> {
         let len = self.len()?;
         let ptr = unsafe { jl_array_data(self.lock()?) as *mut u8 };
@@ -62,15 +72,18 @@ impl ByteArray {
         Ok(slice)
     }
 
+    /// Constructs a Vec of Values from the ByteArray.
     pub fn as_vec(&self) -> Result<Vec<u8>> {
         self.as_slice().map(|s| s.to_vec())
     }
 
+    /// Returns the value at a specified index.
     pub fn index(&self, idx: usize) -> Result<u8> {
         let byte = unsafe { jl_array_uint8_ref(self.lock()?, idx) };
         Ok(byte)
     }
 
+    /// Sets the value at a specified index.
     pub fn index_set(&self, idx: usize, x: u8) -> Result<()> {
         unsafe {
             jl_array_uint8_set(self.lock()?, idx, x);
@@ -80,15 +93,18 @@ impl ByteArray {
 }
 
 impl Svec {
+    /// Returns the length of the Svec.
     pub fn len(&self) -> Result<usize> {
         let len = unsafe { jl_svec_len(self.lock()?) };
         Ok(len)
     }
 
+    /// Checks if the Svec is empty.
     pub fn is_empty(&self) -> bool {
         self.len().unwrap_or(0) == 0
     }
 
+    /// Constructs a Vec of Values from the Svec.
     pub fn as_vec(&self) -> Result<Vec<Value>> {
         let len = self.len()?;
         let ptr = unsafe { jl_svec_data(self.lock()?) };
@@ -100,11 +116,13 @@ impl Svec {
         Ok(vec)
     }
 
+    /// Returns the value at a specified index.
     pub fn index(&self, idx: usize) -> Result<Value> {
         let raw = unsafe { jl_svecref(self.lock()?, idx) };
         Value::new(raw)
     }
 
+    /// Sets the value at a specified index.
     pub fn index_set(&self, idx: usize, x: &Value) -> Result<()> {
         unsafe {
             jl_svecset(self.lock()?, idx, x.lock()?);
@@ -113,6 +131,7 @@ impl Svec {
     }
 }
 
+/// Creates a new Svec.
 #[macro_export]
 macro_rules! jlvec {
     [] => {

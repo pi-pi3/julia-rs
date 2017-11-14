@@ -1,10 +1,15 @@
 
+/// This module provides an interface between Rust native strings and
+/// nul-terminated C-strings.
+
 use std::ffi::{CStr, CString};
 
 use libc::c_char;
 
 use error::Error;
 
+/// Create a CStr safely without the need to convert or allocate additional
+/// space.
 #[macro_export]
 macro_rules! cstr {
     ( $( $s:expr ),*) => {
@@ -19,10 +24,12 @@ macro_rules! cstr {
     }
 }
 
+/// Trait for types which can be converted into a CString.
 pub trait IntoCString {
     fn into_cstring(self) -> CString;
 }
 
+/// Trait for types which can be attempted to convert into a Rust String.
 pub trait TryIntoString {
     type Error;
     fn try_into_string(self) -> Result<String, Self::Error>;

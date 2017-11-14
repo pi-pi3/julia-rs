@@ -1,4 +1,6 @@
 
+//! Module providing wrappers for the native Julia type-types.
+
 use sys::*;
 use error::Result;
 use api::{Value, JlValue, Array};
@@ -10,6 +12,7 @@ jlvalues! {
 }
 
 impl Datatype {
+    /// Creates a new Julia struct of this type. 
     pub fn new_struct<I>(&self, params: I) -> Result<Value>
     where
         I: IntoIterator<Item = Value>,
@@ -27,6 +30,7 @@ impl Datatype {
         Value::new(value)
     }
 
+    /// Creates a new Julia array of this type. 
     pub fn new_array<I>(&self, params: I) -> Result<Array>
     where
         I: IntoIterator<Item = Value>,

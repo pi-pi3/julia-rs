@@ -1,4 +1,6 @@
 
+//! Main entry point to the Julia api.
+
 use std::ptr;
 use std::io::Read;
 use std::ffi::CStr;
@@ -8,6 +10,9 @@ use error::{Result, Error};
 use version::Version;
 use string::IntoCString;
 
+/// This macro checks for exceptions that might have occurred in the sys::*
+/// functions. Should be used after calling any jl_* function that might throw
+/// an exception.
 #[macro_export]
 macro_rules! jl_catch {
     () => {
@@ -48,9 +53,11 @@ pub use self::task::Task;
 pub use self::exception::Exception;
 pub use self::primitive::*;
 
+/// Blank struct for controlling the Julia garbage collector.
 pub struct Gc;
 
 impl Gc {
+    /// Enable or disable the garbage collector.
     pub fn enable(&self, p: bool) -> Result<()> {
         unsafe {
             jl_gc_enable(p as i32);
@@ -59,10 +66,13 @@ impl Gc {
         Ok(())
     }
 
+    /// Check to see if gc is enabled.
     pub fn is_enabled(&self) -> bool {
         unsafe { jl_gc_is_enabled() != 0 }
     }
 
+    /// Collect immediately. Set full to true if a full garbage collection
+    /// should be issued
     pub fn collect(&self, full: bool) -> Result<()> {
         unsafe {
             jl_gc_collect(full as i32);
@@ -71,6 +81,7 @@ impl Gc {
         Ok(())
     }
 
+    /// Total bytes in use by the gc.
     pub fn total_bytes(&self) -> isize {
         unsafe { jl_gc_total_bytes() as isize }
     }
@@ -84,6 +95,7 @@ impl Gc {
     }
 }
 
+/// Struct for controlling the Julia runtime.
 pub struct Julia {
     main: Module,
     core: Module,
@@ -94,6 +106,11 @@ pub struct Julia {
 }
 
 impl Julia {
+    /// Initialize the Julia runtime. 
+    ///
+    /// ## Errors
+    ///
+    /// Returns Error::JuliaInitialized if Julia is already initialized.
     pub fn new() -> Result<Julia> {
         if Julia::is_initialized() {
             return Err(Error::JuliaInitialized);
@@ -119,6 +136,7 @@ impl Julia {
         })
     }
 
+    /// Returns the version of currently running Julia runtime.
     pub fn version(&self) -> Version {
         unsafe {
             let major = jl_ver_major() as u32;
@@ -146,34 +164,43 @@ impl Julia {
         }
     }
 
+    /// Returns a reference to the garbage collector.
     pub fn gc(&self) -> &Gc {
         &self.gc
     }
 
+    /// Checks if Julia was already initialized in the current thread.
     pub fn is_initialized() -> bool {
         unsafe { jl_is_initialized() != 0 }
     }
 
+    /// Sets own status to status and consumes Julia, causing the value to be
+    /// dropped.
     pub fn exit(mut self, status: i32) {
         self.status = status
     }
 
+    /// Returns a handle to the main module.
     pub fn main(&self) -> &Module {
         &self.main
     }
 
+    /// Returns a handle to the core module.
     pub fn core(&self) -> &Module {
         &self.core
     }
 
+    /// Returns a handle to the base module.
     pub fn base(&self) -> &Module {
         &self.base
     }
 
+    /// Returns a handle to the top module.
     pub fn top(&self) -> &Module {
         &self.top
     }
 
+    /// Loads a Julia script from any Read without evaluating it.
     pub fn load<R: Read>(r: &mut R) -> Result<Value> {
         let mut content = String::new();
         let len = r.read_to_string(&mut content)?;
@@ -185,6 +212,7 @@ impl Julia {
         Value::new(raw)
     }
 
+    /// Parses and evaluates string.
     pub fn eval_string<S: IntoCString>(&mut self, string: S) -> Result<Value> {
         let string = string.into_cstring();
         let string = string.as_ptr();

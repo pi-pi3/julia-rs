@@ -1,4 +1,6 @@
 
+//! Module providing wrappers for the native Julia exceptions.
+
 use std::fmt;
 use std::error;
 use std::ops::Deref;
@@ -11,40 +13,69 @@ use error::Result;
 use string::IntoCString;
 use super::{Value, JlValue, Symbol, Datatype};
 
+/// Enum containing different Julia exceptions wrapped as a Value.
 #[derive(Clone)]
 pub enum Exception {
+    /// The parameters to a function call do not match a valid signature
     Argument(Value),
+    /// Attempt to access index out-of-bounds
     Bounds(Value),
+    /// Composite exception
     Composite(Value),
+    /// Divide by zero
     Divide(Value),
+    /// The argument is outside of the valid domain
     Domain(Value),
+    /// No more data is available from file or stream
     EOF(Value),
+    /// Generic error occurred
     Error(Value),
+    /// Type conversion cannot be done exactly
     Inexact(Value),
+    /// An error occurred when running a module's __init__ 
     Init(Value),
+    /// The process was stopped by a terminal interrupt (^C)
     Interrupt(Value),
+    /// The program reached an invalid exception
     InvalidState(Value),
+    /// Key doesn't exist in Associative- or Set-like object
     Key(Value),
+    /// An error occurred while include-ing, require-ing or using a file
     Load(Value),
+    /// Operation allocated too much memory
     OutOfMemory(Value),
+    /// Operation tried to write to read-only memory
     ReadOnlyMemory(Value),
+    /// Remote exception occurred
     Remote(Value),
+    /// Method with the required type signature doesn't exist
     Method(Value),
+    /// The result of an expression is too large
     Overflow(Value),
+    /// The expression couldn't be parsed as a valid Julia expression
     Parse(Value),
+    /// System call failed
     System(Value),
+    /// Type assertion failed
     Type(Value),
+    /// The item or field is not defined
     UndefRef(Value),
+    /// Symbol is not defined in current scope
     UndefVar(Value),
+    /// Byte array does not represent a valid unicode string
     Unicode(Value),
+    /// Unknown exception
     Unknown(Value),
 }
 
 impl Exception {
+    /// Check if an exception occurred without checking its value.
     pub fn occurred() -> bool {
         unsafe { !jl_exception_occurred().is_null() }
     }
 
+    /// Catch an exception if it occurred. Returns None if no exception
+    /// occurred.
     pub fn catch() -> Option<Exception> {
         let raw = unsafe { jl_exception_occurred() };
         unsafe {
@@ -53,6 +84,8 @@ impl Exception {
         Value::new(raw).and_then(Exception::with_value).ok()
     }
 
+    // TODO: replace comparing typename with comparing a *mut jl_datatype_t.
+    /// Construct a new Exception with a wrapped Julia value.
     pub fn with_value(value: Value) -> Result<Exception> {
         let typename = value.typename()?;
         let ex = match typename.as_str() {
@@ -85,6 +118,7 @@ impl Exception {
         Ok(ex)
     }
 
+    /// Immutably borrows the inner value.
     pub fn inner_ref(&self) -> &Value {
         match *self {
             Exception::Argument(ref value) => value,
@@ -115,6 +149,7 @@ impl Exception {
         }
     }
 
+    /// Mutably borrows the inner value.
     pub fn inner_mut(&mut self) -> &mut Value {
         match *self {
             Exception::Argument(ref mut value) => value,
@@ -145,6 +180,7 @@ impl Exception {
         }
     }
 
+    /// Consumes self and returns the inner value.
     pub fn into_inner(self) -> Value {
         match self {
             Exception::Argument(value) => value,
@@ -239,6 +275,7 @@ impl error::Error for Exception {
     }
 }
 
+/// Throws a generic error.
 pub fn error<S: IntoCString>(string: S) {
     let string = string.into_cstring();
     let string = string.as_ptr();
@@ -247,10 +284,12 @@ pub fn error<S: IntoCString>(string: S) {
     }
 }
 
+/// Throws a formatted generic error.
 pub fn error_format(args: fmt::Arguments) {
     error(fmt::format(args).into_cstring());
 }
 
+/// Throws an exception with the specified Datatype and message.
 pub fn exception<S: IntoCString>(ty: &Datatype, string: S) -> Result<()> {
     let ty = ty.lock()?;
     let string = string.into_cstring();
@@ -261,10 +300,12 @@ pub fn exception<S: IntoCString>(ty: &Datatype, string: S) -> Result<()> {
     Ok(())
 }
 
+/// Throws an exception with the specified Datatype and a formatted message.
 pub fn exception_format(ty: &Datatype, args: fmt::Arguments) -> Result<()> {
     exception(ty, fmt::format(args).into_cstring())
 }
 
+/// Too few arguments exception.
 pub fn too_few_args<S: IntoCString>(fname: S, min: usize) {
     let fname = fname.into_cstring();
     let fname = fname.as_ptr();
@@ -273,6 +314,7 @@ pub fn too_few_args<S: IntoCString>(fname: S, min: usize) {
     }
 }
 
+/// Too many arguments exception.
 pub fn too_many_args<S: IntoCString>(fname: S, max: usize) {
     let fname = fname.into_cstring();
     let fname = fname.as_ptr();
@@ -281,6 +323,7 @@ pub fn too_many_args<S: IntoCString>(fname: S, max: usize) {
     }
 }
 
+/// Invalid type in an expression.
 pub fn type_error<S: IntoCString>(fname: S, expected: &Value, got: &Value) -> Result<()> {
     let fname = fname.into_cstring();
     let fname = fname.as_ptr();
@@ -305,6 +348,7 @@ pub fn type_error_rt<S: IntoCString>(fname: S, context: S, ty: &Value, got: &Val
     Ok(())
 }
 
+/// No value is bound to this symbol.
 pub fn undefined_var_error(var: &Symbol) -> Result<()> {
     let var = var.lock()?;
     unsafe {
@@ -313,11 +357,12 @@ pub fn undefined_var_error(var: &Symbol) -> Result<()> {
     Ok(())
 }
 
-pub fn bounds_error(v: &Value, t: &Value) -> Result<()> {
+/// Index ouf of bound.
+pub fn bounds_error(v: &Value, idx: &Value) -> Result<()> {
     let v = v.lock()?;
-    let t = t.lock()?;
+    let idx = idx.lock()?;
     unsafe {
-        jl_bounds_error(v, t);
+        jl_bounds_error(v, idx);
     }
     Ok(())
 }
@@ -336,6 +381,7 @@ pub fn bounds_error_v(v: &Value, idxs: &[Value]) -> Result<()> {
     Ok(())
 }
 
+/// Index out of bound.
 pub fn bounds_error_int(v: &Value, i: usize) -> Result<()> {
     let v = v.lock()?;
     unsafe {
@@ -377,6 +423,7 @@ pub fn bounds_error_ints(v: &Value, idxs: &[usize]) -> Result<()> {
     Ok(())
 }
 
+/// Unexpected End of File.
 pub fn eof_error() {
     unsafe {
         jl_eof_error();

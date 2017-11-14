@@ -1,4 +1,6 @@
 
+//! This module provides types necessary for error checking and debugging.
+
 use std::fmt;
 use std::result;
 use std::error;
@@ -11,25 +13,49 @@ use std::rc::Rc;
 
 use api::Exception;
 
+/// Generic julia-rs Result type, used pretty much everywhere a failure might occur
 pub type Result<T> = result::Result<T, Error>;
 
+/// A union of all possible errors that might occur in Julia runtime and
+/// julia-rs, including Julia exceptions, Rust's io errors and alike, errors
+/// arising from trying to use poisonend resources or trying to consume
+/// resources in use.
 #[derive(Debug)]
 pub enum Error {
+    /// An exception has occurred. 
     UnhandledException(Exception),
+    /// Cannot unbox into a certain type.
     InvalidUnbox,
+    /// Tried to call a non-function object.
     NotAFunction,
+    /// An error occurred while trying to call a function.
     CallError,
+    /// An error occurred while evaluating a string or expression.
     EvalError,
+    /// Attempt to construct a string or Julia object with a null pointer.
     NullPointer,
+    /// Invalid characters used in symbol. See
+    /// [docs.julialang.org](https://docs.julialang.org/en/stable/manual/variables/)
+    /// for details on symbols and allowed characters.
     InvalidSymbol,
+    /// Attempt to initialize Julia in a thread where it's already initialized.
     JuliaInitialized,
+    /// Wrapper for ffi::FromBytesWithNulError.
     CStrError(FromBytesWithNulError),
+    /// Wrapper for ffi::NulError.
     CStringError(NulError),
+    /// Wrapper for sync::PoisonError.
     PoisonError,
+    /// Wrapper for errors arising from trying to consume an Rc which is
+    /// currently borrowed.
     ResourceInUse,
+    /// Wrapper for char::CharTryFromError.
     UTF8Error(CharTryFromError),
+    /// Wrapper for string::FromUtf8Error.
     FromUTF8Error(FromUtf8Error),
+    /// Wrapper for ffi::IntoStringError.
     IntoStringError(IntoStringError),
+    /// Wrapper for io::Error.
     IOError(io::Error),
 }
 

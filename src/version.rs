@@ -1,14 +1,22 @@
 
+//! This module provides primitives and constants for checking and comparing the version.
+
 use std::fmt;
 use std::str::FromStr;
 
+/// Major package version.
 const MAJOR: &str = env!("CARGO_PKG_VERSION_MAJOR");
+/// Minor package version.
 const MINOR: &str = env!("CARGO_PKG_VERSION_MINOR");
+/// Package patch number.
 const PATCH: &str = env!("CARGO_PKG_VERSION_PATCH");
+/// Is this a release?
 const RELEASE: bool = false;
 
 include!(concat!(env!("OUT_DIR"), "/git_version.rs"));
 
+/// Primitive for comparing and displaying the version of both Julia and
+/// julia-rs.
 #[derive(Clone)]
 pub struct Version<'a> {
     pub name: &'a str,
@@ -20,6 +28,7 @@ pub struct Version<'a> {
     pub commit: Option<&'a str>,
 }
 
+/// Returns the version of currently running julia-rs binary.
 pub fn get() -> Version<'static> {
     Version {
         name: "julia-rs",
@@ -33,6 +42,7 @@ pub fn get() -> Version<'static> {
 }
 
 impl<'a> Version<'a> {
+    /// Returns a shortened version, i.e. without the branch and commit.
     pub fn shorten(self) -> Version<'a> {
         Version {
             name: self.name,

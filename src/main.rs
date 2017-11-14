@@ -1,4 +1,32 @@
 
+//! Minimalistic interactive Julia REPL written in Rust.
+//!
+//! ## Compilation
+//! `cargo make`
+//!
+//! ## Usage
+//!
+//! `cargo run`
+//! OR
+//! `julia-rs`
+//! if installed with `cargo install`
+//!
+//! ## Example
+//!
+//! ```julia
+//! 
+//!                _
+//!    _       _ _(_)_                   |  A fresh approach to technical computing
+//!   (_)     | (_) (_)                  |  Documentation: https://docs.julialang.org
+//!    _ _   _| |_  __ _     _  _  __    |  Rusty REPL based on official Julia REPL
+//!   | | | | | | |/ _` |   | |/ // _)   |
+//!   | | |_| | | | (_| | _ |  ,/ \_ \   |  julia 0.6.0 (9036443)
+//!  _/ |\__'_|_|_|\__'_|(_)|_|   (__/   | julia-rs 0.1.2 (master-6a5b7d1)
+//! |__/                                 |
+//!
+//! julia.rs> f(x) = 2x + pi
+//! ```
+
 #![feature(unicode)]
 
 extern crate julia;
