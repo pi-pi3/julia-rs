@@ -18,8 +18,8 @@ julia = "0.1"
 
 As an example application, an interactive Julia REPL written in 100% safe Rust
 is included. See its source at **[src/main.rs](/src/main.rs)**, build with
-`cargo build` and run with `cargo run`. The binary doesn't accept any arguments
-yet.
+`cargo build` and run with `cargo run`. See `julia-rs -h` or `cargo run -- -h`
+for help.
 
 # Example
 

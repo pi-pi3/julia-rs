@@ -32,14 +32,17 @@
 extern crate julia;
 extern crate colored;
 extern crate liner;
+extern crate clap;
 extern crate std_unicode;
 
 use std::env;
+use std::fs::File;
 use std::io::ErrorKind;
 use std_unicode::str::UnicodeStr;
 
 use liner::{Context, History, KeyBindings};
 use colored::*;
+use clap::{Arg, App};
 
 use julia::api::{Julia, Value};
 use julia::error::Error;
@@ -48,27 +51,29 @@ use julia::version;
 macro_rules! errprintln {
     ($msg:expr) => { eprintln!("{}", msg.bright_red().bold()); };
     ($fmt:expr, $err:expr) => {
-        use std::fmt::Write;
-        use std::error::Error;
+        {
+            use std::fmt::Write;
+            use std::error::Error;
 
-        let mut msg = String::new();
-        let err = match $err.cause() {
-            None        => {
-                write!(msg, concat!($fmt, "\n > {}"), $err, $err.description())
-                    .and_then(|_| {
-                        eprintln!("{}", msg.bright_red().bold());
-                        Ok(())
-                    })
-            },
-            Some(cause) => {
-                write!(msg, concat!($fmt, "\n > {}\n >> {}"), $err, $err.description(), cause)
-                    .and_then(|_| {
-                        eprintln!("{}", msg.bright_red().bold());
-                        Ok(())
-                    })
-            },
-        };
-        err.expect("Couldn't write error");
+            let mut msg = String::new();
+            let err = match $err.cause() {
+                None        => {
+                    write!(msg, concat!($fmt, "\n > {}"), $err, $err.description())
+                        .and_then(|_| {
+                            eprintln!("{}", msg.bright_red().bold());
+                            Ok(())
+                        })
+                },
+                Some(cause) => {
+                    write!(msg, concat!($fmt, "\n > {}\n >> {}"), $err, $err.description(), cause)
+                        .and_then(|_| {
+                            eprintln!("{}", msg.bright_red().bold());
+                            Ok(())
+                        })
+                },
+            };
+            err.expect("Couldn't write error");
+        }
     }
 }
 
@@ -137,22 +142,32 @@ fn set_history(jl: &mut Julia, ret: &Value) -> Result<(), usize> {
     Ok(())
 }
 
-fn main() {
-    let mut jl = match Julia::new() {
-        Ok(jl) => jl,
+fn eval_string(jl: &mut Julia, expr: &str) -> Option<Value> {
+    let ret = jl.eval_string(expr);
+
+    let ret = match ret {
+        Ok(ret) => ret,
+        Err(Error::UnhandledException(ex)) => {
+            errprintln!("Exception: {}", ex);
+            return None;
+        }
         Err(err) => {
-            errprintln!("An error occurred while initializing Julia:\n{}", err);
-            return;
+            errprintln!("Error: {}", err);
+            return None;
         }
     };
 
-    jl.eval_string("exit() = println(\"Sorry! Use C-D to exit.\")")
-        .expect("Couldn't override `exit()`");
-    jl.eval_string("exit(s) = exit()").expect(
-        "Couldn't override `exit(status)`",
-    );
+    if !ret.is_nothing() {
+        Some(ret)
+    } else {
+        None
+    }
+}
 
-    greet(&jl);
+fn interactive(mut jl: Julia, quiet: bool) {
+    if !quiet {
+        greet(&jl);
+    }
 
     let home = env::var("HOME").unwrap();
     let history_path = format!("{}/.julia-rs_history", home);
@@ -186,32 +201,123 @@ fn main() {
             }
         };
 
-        let ret = jl.eval_string(line.clone());
+        let ret = eval_string(&mut jl, &*line);
+        if let Some(ret) = ret {
+            print!("{}", ret);
+
+            if let Err(i) = set_history(&mut jl, &ret) {
+                eprintln!("Warning: couldn't set answer history at {}", i);
+            }
+        }
+        println!();
+
         if let Err(err) = con.history.push(line.into()) {
             eprintln!("Error: could not write line to history file\n > {}", err);
-        }
-
-        let ret = match ret {
-            Ok(ret) => ret,
-            Err(Error::UnhandledException(ex)) => {
-                errprintln!("Exception: {}", ex);
-                continue;
-            }
-            Err(err) => {
-                errprintln!("Error: {}", err);
-                continue;
-            }
-        };
-
-        if !ret.is_nothing() {
-            println!("{}", ret);
-        }
-
-        if let Err(i) = set_history(&mut jl, &ret) {
-            eprintln!("Warning: couldn't set answer history at {}", i);
         }
     }
 
     let Context { mut history, .. } = con;
     history.commit_history();
+}
+
+fn main() {
+    let ver = version::get().to_string();
+    let app = App::new("")
+        .version(&*ver)
+        .author("Szymon Walter <walter.szymon.98@gmail.com>")
+        .about("Minimalistic interactive Julia REPL in Rust")
+        .arg(Arg::with_name("eval")
+             .short("e")
+             .long("eval")
+             .value_name("EXPR")
+             .help("Evaluate EXPR")
+             .multiple(true)
+             .takes_value(true))
+        .arg(Arg::with_name("print")
+             .short("E")
+             .long("print")
+             .value_name("EXPR")
+             .help("Evaluate and show EXPR")
+             .multiple(true)
+             .takes_value(true))
+        .arg(Arg::with_name("load")
+             .short("L")
+             .long("load")
+             .value_name("FILE")
+             .help("Load FILE")
+             .multiple(true)
+             .takes_value(true))
+        .arg(Arg::with_name("repl")
+             .short("i")
+             .long("interactive")
+             .help("Interactive mode; REPL runs and isinteractive() is true"))
+        .arg(Arg::with_name("quiet")
+             .short("q")
+             .long("quiet")
+             .help("Quiet startup (no banner)"));
+
+    let matches = app.get_matches();
+
+    let eval = matches.values_of("eval");
+    let print = matches.values_of("print");
+    let load = matches.values_of("load");
+    let repl = matches.is_present("repl");
+    let quiet = matches.is_present("quiet");
+
+    let mut jl = match Julia::new() {
+        Ok(jl) => jl,
+        Err(err) => {
+            errprintln!("An error occurred while initializing Julia:\n{}", err);
+            return;
+        }
+    };
+
+    jl.eval_string("exit() = println(\"Sorry! Use C-D to exit.\")")
+        .expect("Couldn't override `exit()`");
+    jl.eval_string("exit(s) = exit()").expect(
+        "Couldn't override `exit(status)`",
+    );
+
+    let mut repl_default = true;
+
+    if let Some(eval) = eval {
+        for expr in eval {
+            eval_string(&mut jl, expr);
+        }
+        repl_default = false;
+    }
+
+    if let Some(print) = print {
+        for expr in print {
+            if let Some(string) = eval_string(&mut jl, expr) {
+                println!("{}", string);
+            }
+        }
+        repl_default = false;
+    }
+
+    if let Some(load) = load {
+        for filename in load {
+            let mut file = match File::open(filename) {
+                Ok(f) => f,
+                Err(e) => {
+                    eprintln!("Error: couldn't open file\n > {}", e);
+                    continue;
+                }
+            };
+
+            match jl.load(&mut file, Some(filename)) {
+                Err(Error::UnhandledException(ex)) => errprintln!("Exception: {}", ex),
+                Err(err) => errprintln!("Error: {}", err),
+                _ => (),
+            }
+        }
+        repl_default = false;
+    }
+
+    let repl = repl || repl_default;
+
+    if repl {
+        interactive(jl, quiet);
+    }
 }
