@@ -46,7 +46,6 @@ impl<'a> TryFrom<&'a Symbol> for String {
         jl_catch!();
         let cstr = unsafe { CStr::from_ptr(raw) };
         let cstring = cstr.to_owned();
-        cstring.into_string()
-            .map_err(From::from)
+        cstring.into_string().map_err(From::from)
     }
 }
