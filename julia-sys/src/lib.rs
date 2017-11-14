@@ -20,7 +20,7 @@ pub unsafe fn jl_valueof<T>(v: *mut T) -> *mut jl_value_t {
 }
 
 pub unsafe fn jl_typeof<T>(v: *mut T) -> *mut jl_value_t {
-    ((*jl_astaggedvalue(v)).__bindgen_anon_1.header.as_ref() & (!(15 as usize))) as *mut jl_value_t
+    ((*jl_astaggedvalue(v)).__bindgen_anon_1.header & (!(15 as usize))) as *mut jl_value_t
 }
 
 pub unsafe fn jl_typeis<T, U>(v: *mut T, t: *mut U) -> bool {
@@ -96,15 +96,15 @@ pub unsafe fn JL_GC_POP() -> *mut jl_gcframe_t {
 
 pub unsafe fn jl_gc_wb<T, U>(parent: *mut T, ptr: *mut U) {
     // parent and ptr isa jl_value_t*
-    if (*jl_astaggedvalue(parent)).__bindgen_anon_1.bits.as_ref().gc() == 3 &&
-        ((*jl_astaggedvalue(ptr)).__bindgen_anon_1.bits.as_ref().gc() & 1) == 0 {
+    if (*jl_astaggedvalue(parent)).__bindgen_anon_1.bits.gc() == 3 &&
+        ((*jl_astaggedvalue(ptr)).__bindgen_anon_1.bits.gc() & 1) == 0 {
         jl_gc_queue_root(parent as *mut jl_value_t);
     }
 }
 
 pub unsafe fn jl_gc_wb_back<T>(ptr: *mut T) {
     // if ptr is old
-    if (*jl_astaggedvalue(ptr)).__bindgen_anon_1.bits.as_ref().gc() == 3 {
+    if (*jl_astaggedvalue(ptr)).__bindgen_anon_1.bits.gc() == 3 {
         jl_gc_queue_root(ptr as *mut jl_value_t);
     }
 }
@@ -170,7 +170,7 @@ pub unsafe fn jl_array_ndimwords(ndims: usize) -> usize {
 
 pub unsafe fn jl_array_data_owner_offset(ndims: usize) -> usize {
     let a = mem::uninitialized::<jl_array_t>(); 
-    let offset = ((&a.__bindgen_anon_1.ncols.as_ref()) as *const _ as usize) - ((&a) as *const _ as usize);
+    let offset = ((&a.__bindgen_anon_1.ncols) as *const _ as usize) - ((&a) as *const _ as usize);
 
     offset + mem::size_of::<usize>() * (1 + jl_array_ndimwords(ndims))
 }
@@ -505,7 +505,7 @@ pub unsafe fn jl_unwrap_vararg<T>(v: *mut T) -> *mut jl_value_t {
 
 pub unsafe fn jl_vararg_kind<T>(mut v: *mut T) -> jl_vararg_kind_t {
     if !jl_is_vararg_type(v) {
-        return jl_vararg_kind_t::JL_VARARG_NONE;
+        return jl_vararg_kind_t_JL_VARARG_NONE;
     }
 
     let mut v1 = ptr::null_mut();
@@ -524,11 +524,11 @@ pub unsafe fn jl_vararg_kind<T>(mut v: *mut T) -> jl_vararg_kind_t {
     let lenv = jl_tparam1(v);
 
     if jl_is_long(lenv) {
-        jl_vararg_kind_t::JL_VARARG_INT
+        jl_vararg_kind_t_JL_VARARG_INT
     } else if jl_is_typevar(lenv) && lenv != v1 as *mut jl_value_t && lenv != v2 as *mut jl_value_t {
-        jl_vararg_kind_t::JL_VARARG_BOUND
+        jl_vararg_kind_t_JL_VARARG_BOUND
     } else {
-        jl_vararg_kind_t::JL_VARARG_UNBOUND
+        jl_vararg_kind_t_JL_VARARG_UNBOUND
     }
 }
 
@@ -544,7 +544,7 @@ pub unsafe fn jl_va_tuple_kind(mut t: *mut jl_datatype_t) -> jl_vararg_kind_t {
 
     let l = jl_svec_len((*t).parameters);
     if l == 0 {
-        jl_vararg_kind_t::JL_VARARG_NONE
+        jl_vararg_kind_t_JL_VARARG_NONE
     } else {
         jl_vararg_kind(jl_tparam(t, l - 1))
     }

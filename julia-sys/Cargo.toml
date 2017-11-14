@@ -1,6 +1,6 @@
 [package]
 name = "julia-sys"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Szymon Walter <walter.szymon.98@gmail.com>"]
 license = "Zlib"
 keywords = ["julia", "lang", "scripting", "ffi", "sys"]
@@ -13,7 +13,7 @@ Raw FFI bindings to the Julia API
 """
 
 [build-dependencies]
-bindgen = "0.26.3"
+bindgen = "0.31"
 
 [dependencies]
 libc = "0.2"
