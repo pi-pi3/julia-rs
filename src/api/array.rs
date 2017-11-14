@@ -20,6 +20,25 @@ impl Array {
         Ok(len)
     }
 
+    pub fn dim(&self, i: usize) -> Result<usize> {
+        let dim = unsafe { jl_array_dim(self.lock()?, i) };
+        Ok(dim)
+    }
+
+    pub fn dim0(&self) -> Result<usize> {
+        self.dim(0)
+    }
+
+    pub fn nrows(&self) -> Result<usize> {
+        let nrows = unsafe { jl_array_nrows(self.lock()?) };
+        Ok(nrows)
+    }
+
+    pub fn ndims(&self) -> Result<usize> {
+        let ndims = unsafe { jl_array_ndims(self.lock()?) };
+        Ok(ndims)
+    }
+
     /// Checks if the Array is empty.
     pub fn is_empty(&self) -> bool {
         self.len().unwrap_or(0) == 0
