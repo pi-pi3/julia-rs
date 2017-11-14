@@ -1,7 +1,6 @@
 
 //! Main entry point to the Julia api.
 
-use std::ptr;
 use std::io::Read;
 use std::ffi::CStr;
 
