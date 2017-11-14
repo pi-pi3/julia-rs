@@ -1,6 +1,9 @@
 
 //! Module providing a wrapper for the native Julia symbol.
 
+use std::convert::TryFrom;
+use std::ffi::CStr;
+
 use sys::*;
 use error::{Result, Error};
 use string::IntoCString;
@@ -33,5 +36,17 @@ impl IntoSymbol for Symbol {
 impl<S: IntoCString> IntoSymbol for S {
     fn into_symbol(self) -> Result<Symbol> {
         Symbol::with_name(self.into_cstring())
+    }
+}
+
+impl<'a> TryFrom<&'a Symbol> for String {
+    type Error = Error;
+    fn try_from(sym: &Symbol) -> Result<String> {
+        let raw = unsafe { jl_symbol_name(sym.lock()?) };
+        jl_catch!();
+        let cstr = unsafe { CStr::from_ptr(raw) };
+        let cstring = cstr.to_owned();
+        cstring.into_string()
+            .map_err(From::from)
     }
 }
