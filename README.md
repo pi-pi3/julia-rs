@@ -8,7 +8,7 @@ Safe and idiomatic Julia bindings for Rust
 
 ```
 [dependencies]
-julia = "0.1"
+julia = "0.2"
 ...
 ```
 
