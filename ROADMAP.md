@@ -5,71 +5,71 @@ This is the roadmap containing detailed information on all goals that need to be
 hit before a release.
 
 # 0.3
-[ ] jl\_egal
-[ ] jl\_object\_id
-[ ] jl\_is\_leaf\_type
-[ ] jl\_type\_union
-[ ] jl\_type\_intersection
-[ ] jl\_has\_empty\_intersection
-[ ] jl\_type\_unionall
-[ ] jl\_new\_typename
-[ ] jl\_new\_typevar
-[ ] jl\_new\_typevar
-[ ] jl\_instantiate\_unionall
-[ ] jl\_apply\_type
-[ ] jl\_apply\_type1
-[ ] jl\_apply\_type2
-[ ] jl\_apply\_tuple\_type
-[ ] jl\_gensym
-[ ] jl\_get\_root\_symbol
-[ ] jl\_is\_vararg\_type
-[ ] jl\_unwrap\_vararg
-[ ] jl\_vararg\_kind
-[ ] jl\_is\_va\_tuple
-[ ] jl\_va\_tuple\_kind
-[ ] jl\_new\_array
-[ ] jl\_value\_ptr
-[ ] jl\_reshape\_array
-[ ] jl\_ptr\_to\_array\_1d
-[ ] jl\_alloc\_array\_1d
-[ ] jl\_alloc\_array\_2d
-[ ] jl\_alloc\_array\_3d
-[ ] jl\_arrayref
-[ ] jl\_arrayset
-[ ] jl\_array\_ptr\_1d\_push
-[ ] jl\_array\_ptr\_1d\_push2
-[ ] jl\_array\_ptr\_1d\_append
-[ ] jl\_apply\_array\_type
-[ ] jl\_array\_size
-[ ] jl\_new\_module
-[ ] jl\_is\_const
-[ ] jl\_module\_using
-[ ] jl\_module\_use
-[ ] jl\_module\_import
-[ ] jl\_module\_importall
-[ ] jl\_module\_export
-[ ] jl\_is\_imported
-[ ] jl\_new\_main\_module
-[ ] jl\_add\_standard\_imports
-[ ] jl\_is\_submodule
-[ ] jl\_errno
-[ ] jl\_set\_errno
-[ ] jl\_stat
-[ ] jl\_cpu\_cores
-[ ] jl\_getpagesize
-[ ] jl\_getallocationgranularity
-[ ] jl\_is\_debugbuild
-[ ] jl\_get\_UNAME
-[ ] jl\_get\_ARCH
-[ ] jl\_cpuid\_tag
-[ ] jl\_uses\_cpuid\_tag
-[ ] julia\_init
-[ ] jl\_init\_with\_image
-[ ] jl\_get\_default\_sysimg\_path
-[ ] jl\_create\_system\_image
-[ ] jl\_save\_system\_image
-[ ] jl\_restore\_system\_image
-[ ] jl\_restore\_system\_image\_data
-[ ] jl\_throw
-[ ] jl\_rethrow
-[ ] jl\_rethrow\_other
+- [ ] jl\_egal
+- [ ] jl\_object\_id
+- [ ] jl\_is\_leaf\_type
+- [ ] jl\_type\_union
+- [ ] jl\_type\_intersection
+- [ ] jl\_has\_empty\_intersection
+- [ ] jl\_type\_unionall
+- [ ] jl\_new\_typename
+- [ ] jl\_new\_typevar
+- [ ] jl\_new\_typevar
+- [ ] jl\_instantiate\_unionall
+- [ ] jl\_apply\_type
+- [ ] jl\_apply\_type1
+- [ ] jl\_apply\_type2
+- [ ] jl\_apply\_tuple\_type
+- [ ] jl\_gensym
+- [ ] jl\_get\_root\_symbol
+- [ ] jl\_is\_vararg\_type
+- [ ] jl\_unwrap\_vararg
+- [ ] jl\_vararg\_kind
+- [ ] jl\_is\_va\_tuple
+- [ ] jl\_va\_tuple\_kind
+- [ ] jl\_new\_array
+- [ ] jl\_value\_ptr
+- [ ] jl\_reshape\_array
+- [ ] jl\_ptr\_to\_array\_1d
+- [ ] jl\_alloc\_array\_1d
+- [ ] jl\_alloc\_array\_2d
+- [ ] jl\_alloc\_array\_3d
+- [ ] jl\_arrayref
+- [ ] jl\_arrayset
+- [ ] jl\_array\_ptr\_1d\_push
+- [ ] jl\_array\_ptr\_1d\_push2
+- [ ] jl\_array\_ptr\_1d\_append
+- [ ] jl\_apply\_array\_type
+- [ ] jl\_array\_size
+- [ ] jl\_new\_module
+- [ ] jl\_is\_const
+- [ ] jl\_module\_using
+- [ ] jl\_module\_use
+- [ ] jl\_module\_import
+- [ ] jl\_module\_importall
+- [ ] jl\_module\_export
+- [ ] jl\_is\_imported
+- [ ] jl\_new\_main\_module
+- [ ] jl\_add\_standard\_imports
+- [ ] jl\_is\_submodule
+- [ ] jl\_errno
+- [ ] jl\_set\_errno
+- [ ] jl\_stat
+- [ ] jl\_cpu\_cores
+- [ ] jl\_getpagesize
+- [ ] jl\_getallocationgranularity
+- [ ] jl\_is\_debugbuild
+- [ ] jl\_get\_UNAME
+- [ ] jl\_get\_ARCH
+- [ ] jl\_cpuid\_tag
+- [ ] jl\_uses\_cpuid\_tag
+- [ ] julia\_init
+- [ ] jl\_init\_with\_image
+- [ ] jl\_get\_default\_sysimg\_path
+- [ ] jl\_create\_system\_image
+- [ ] jl\_save\_system\_image
+- [ ] jl\_restore\_system\_image
+- [ ] jl\_restore\_system\_image\_data
+- [ ] jl\_throw
+- [ ] jl\_rethrow
+- [ ] jl\_rethrow\_other
