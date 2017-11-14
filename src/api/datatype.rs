@@ -56,6 +56,17 @@ impl Datatype {
         Array::new(array)
     }
 
+    /// Creates a new Julia primitive of this type.
+    pub fn new_bits<T: Into<Vec<u8>>>(&self, data: T) -> Result<Value> {
+        let data = data.into();
+        let bits = data.as_ptr();
+
+        let dt = self.lock()?;
+        let value = unsafe { jl_new_bits(dt as *mut _, bits as *mut _) };
+        jl_catch!();
+        Value::new(value)
+    }
+
     pub fn any() -> Datatype {
         unsafe { Datatype::new_unchecked(jl_any_type) }
     }
@@ -118,6 +129,12 @@ impl Datatype {
     }
     pub fn pointer() -> Datatype {
         unsafe { Datatype::new_unchecked(jl_pointer_type as *mut _) }
+    }
+}
+
+impl Default for Datatype {
+    fn default() -> Datatype {
+        Datatype::any()
     }
 }
 
