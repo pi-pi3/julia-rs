@@ -40,6 +40,7 @@
 #![allow(unknown_lints)]
 #![allow(not_unsafe_ptr_arg_deref)]
 #![allow(match_same_arms)]
+#![allow(doc_markdown)]
 
 extern crate libc;
 extern crate smallvec;
