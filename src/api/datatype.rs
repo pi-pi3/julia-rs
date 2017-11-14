@@ -14,7 +14,7 @@ jlvalues! {
 }
 
 impl Datatype {
-    /// Creates a new Julia struct of this type. 
+    /// Creates a new Julia struct of this type.
     pub fn new_struct<I>(&self, params: I) -> Result<Value>
     where
         I: IntoIterator<Item = Value>,
@@ -32,7 +32,7 @@ impl Datatype {
         Value::new(value)
     }
 
-    /// Creates a new Julia array of this type. 
+    /// Creates a new Julia array of this type.
     pub fn new_array<I>(&self, params: I) -> Result<Array>
     where
         I: IntoIterator<Item = Value>,
@@ -56,27 +56,69 @@ impl Datatype {
         Array::new(array)
     }
 
-    pub fn any() -> Datatype { unsafe { Datatype::new_unchecked(jl_any_type) } }
-    pub fn number() -> Datatype { unsafe { Datatype::new_unchecked(jl_number_type) } }
-    pub fn signed() -> Datatype { unsafe { Datatype::new_unchecked(jl_signed_type) } }
-    pub fn abstract_float() -> Datatype { unsafe { Datatype::new_unchecked(jl_floatingpoint_type) } }
-    pub fn bool() -> Datatype { unsafe { Datatype::new_unchecked(jl_bool_type) } }
-    pub fn char() -> Datatype { unsafe { Datatype::new_unchecked(jl_char_type) } }
-    pub fn int8() -> Datatype { unsafe { Datatype::new_unchecked(jl_int8_type) } }
-    pub fn uint8() -> Datatype { unsafe { Datatype::new_unchecked(jl_uint8_type) } }
-    pub fn int16() -> Datatype { unsafe { Datatype::new_unchecked(jl_int16_type) } }
-    pub fn uint16() -> Datatype { unsafe { Datatype::new_unchecked(jl_uint16_type) } }
-    pub fn int32() -> Datatype { unsafe { Datatype::new_unchecked(jl_int32_type) } }
-    pub fn uint32() -> Datatype { unsafe { Datatype::new_unchecked(jl_uint32_type) } }
-    pub fn int64() -> Datatype { unsafe { Datatype::new_unchecked(jl_int64_type) } }
-    pub fn uint64() -> Datatype { unsafe { Datatype::new_unchecked(jl_uint64_type) } }
-    pub fn float16() -> Datatype { unsafe { Datatype::new_unchecked(jl_float16_type) } }
-    pub fn float32() -> Datatype { unsafe { Datatype::new_unchecked(jl_float32_type) } }
-    pub fn float64() -> Datatype { unsafe { Datatype::new_unchecked(jl_float64_type) } }
-    pub fn void() -> Datatype { unsafe { Datatype::new_unchecked(jl_void_type) } }
-    pub fn complex() -> Datatype { unsafe { Datatype::new_unchecked(jl_complex_type as *mut _) } }
-    pub fn void_pointer() -> Datatype { unsafe { Datatype::new_unchecked(jl_voidpointer_type) } }
-    pub fn pointer() -> Datatype { unsafe { Datatype::new_unchecked(jl_pointer_type as *mut _) } }
+    pub fn any() -> Datatype {
+        unsafe { Datatype::new_unchecked(jl_any_type) }
+    }
+    pub fn number() -> Datatype {
+        unsafe { Datatype::new_unchecked(jl_number_type) }
+    }
+    pub fn signed() -> Datatype {
+        unsafe { Datatype::new_unchecked(jl_signed_type) }
+    }
+    pub fn abstract_float() -> Datatype {
+        unsafe { Datatype::new_unchecked(jl_floatingpoint_type) }
+    }
+    pub fn bool() -> Datatype {
+        unsafe { Datatype::new_unchecked(jl_bool_type) }
+    }
+    pub fn char() -> Datatype {
+        unsafe { Datatype::new_unchecked(jl_char_type) }
+    }
+    pub fn int8() -> Datatype {
+        unsafe { Datatype::new_unchecked(jl_int8_type) }
+    }
+    pub fn uint8() -> Datatype {
+        unsafe { Datatype::new_unchecked(jl_uint8_type) }
+    }
+    pub fn int16() -> Datatype {
+        unsafe { Datatype::new_unchecked(jl_int16_type) }
+    }
+    pub fn uint16() -> Datatype {
+        unsafe { Datatype::new_unchecked(jl_uint16_type) }
+    }
+    pub fn int32() -> Datatype {
+        unsafe { Datatype::new_unchecked(jl_int32_type) }
+    }
+    pub fn uint32() -> Datatype {
+        unsafe { Datatype::new_unchecked(jl_uint32_type) }
+    }
+    pub fn int64() -> Datatype {
+        unsafe { Datatype::new_unchecked(jl_int64_type) }
+    }
+    pub fn uint64() -> Datatype {
+        unsafe { Datatype::new_unchecked(jl_uint64_type) }
+    }
+    pub fn float16() -> Datatype {
+        unsafe { Datatype::new_unchecked(jl_float16_type) }
+    }
+    pub fn float32() -> Datatype {
+        unsafe { Datatype::new_unchecked(jl_float32_type) }
+    }
+    pub fn float64() -> Datatype {
+        unsafe { Datatype::new_unchecked(jl_float64_type) }
+    }
+    pub fn void() -> Datatype {
+        unsafe { Datatype::new_unchecked(jl_void_type) }
+    }
+    pub fn complex() -> Datatype {
+        unsafe { Datatype::new_unchecked(jl_complex_type as *mut _) }
+    }
+    pub fn void_pointer() -> Datatype {
+        unsafe { Datatype::new_unchecked(jl_voidpointer_type) }
+    }
+    pub fn pointer() -> Datatype {
+        unsafe { Datatype::new_unchecked(jl_pointer_type as *mut _) }
+    }
 }
 
 /// Type for constructing new primitive, abstract or compound types.
@@ -136,10 +178,16 @@ impl TypeBuilder {
             Datatype::new(raw)
         } else {
             let raw = unsafe {
-                jl_new_datatype(self.name, self.supertype,
-                                self.params, self.fnames,
-                                self.ftypes, self.abstrac as i32,
-                                self.mutable as i32, self.ninitialized as i32)
+                jl_new_datatype(
+                    self.name,
+                    self.supertype,
+                    self.params,
+                    self.fnames,
+                    self.ftypes,
+                    self.abstrac as i32,
+                    self.mutable as i32,
+                    self.ninitialized as i32,
+                )
             };
             jl_catch!();
             Datatype::new(raw)
@@ -148,17 +196,14 @@ impl TypeBuilder {
 
     /// Sets the name.
     pub fn name<S: IntoSymbol>(mut self, name: S) -> TypeBuilder {
-        let name = name
-            .into_symbol();
+        let name = name.into_symbol();
 
         if let Err(err) = name {
             self.err = Some(err);
             return self;
         }
 
-        let name = name
-            .unwrap()
-            .into_inner();
+        let name = name.unwrap().into_inner();
 
         self.name = match name {
             Ok(name) => name,

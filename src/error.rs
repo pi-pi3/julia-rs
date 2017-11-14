@@ -22,7 +22,7 @@ pub type Result<T> = result::Result<T, Error>;
 /// resources in use.
 #[derive(Debug)]
 pub enum Error {
-    /// An exception has occurred. 
+    /// An exception has occurred.
     UnhandledException(Exception),
     /// Cannot unbox into a certain type.
     InvalidUnbox,

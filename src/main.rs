@@ -14,7 +14,7 @@
 //! ## Example
 //!
 //! ```julia
-//! 
+//!
 //!                _
 //!    _       _ _(_)_                   |  A fresh approach to technical computing
 //!   (_)     | (_) (_)                  |  Documentation: https://docs.julialang.org
@@ -157,11 +157,7 @@ fn eval_string(jl: &mut Julia, expr: &str) -> Option<Value> {
         }
     };
 
-    if !ret.is_nothing() {
-        Some(ret)
-    } else {
-        None
-    }
+    if !ret.is_nothing() { Some(ret) } else { None }
 }
 
 fn interactive(mut jl: Julia, quiet: bool) {
@@ -226,35 +222,39 @@ fn main() {
         .version(&*ver)
         .author("Szymon Walter <walter.szymon.98@gmail.com>")
         .about("Minimalistic interactive Julia REPL in Rust")
-        .arg(Arg::with_name("eval")
-             .short("e")
-             .long("eval")
-             .value_name("EXPR")
-             .help("Evaluate EXPR")
-             .multiple(true)
-             .takes_value(true))
-        .arg(Arg::with_name("print")
-             .short("E")
-             .long("print")
-             .value_name("EXPR")
-             .help("Evaluate and show EXPR")
-             .multiple(true)
-             .takes_value(true))
-        .arg(Arg::with_name("load")
-             .short("L")
-             .long("load")
-             .value_name("FILE")
-             .help("Load FILE")
-             .multiple(true)
-             .takes_value(true))
-        .arg(Arg::with_name("repl")
-             .short("i")
-             .long("interactive")
-             .help("Interactive mode; REPL runs and isinteractive() is true"))
-        .arg(Arg::with_name("quiet")
-             .short("q")
-             .long("quiet")
-             .help("Quiet startup (no banner)"));
+        .arg(
+            Arg::with_name("eval")
+                .short("e")
+                .long("eval")
+                .value_name("EXPR")
+                .help("Evaluate EXPR")
+                .multiple(true)
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("print")
+                .short("E")
+                .long("print")
+                .value_name("EXPR")
+                .help("Evaluate and show EXPR")
+                .multiple(true)
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("load")
+                .short("L")
+                .long("load")
+                .value_name("FILE")
+                .help("Load FILE")
+                .multiple(true)
+                .takes_value(true),
+        )
+        .arg(Arg::with_name("repl").short("i").long("interactive").help(
+            "Interactive mode; REPL runs and isinteractive() is true",
+        ))
+        .arg(Arg::with_name("quiet").short("q").long("quiet").help(
+            "Quiet startup (no banner)",
+        ));
 
     let matches = app.get_matches();
 

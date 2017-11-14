@@ -23,7 +23,7 @@ where
     ///
     /// ## Errors
     ///
-    /// Returns Error::NullPointer if `_inner` is a nul-pointer.  
+    /// Returns Error::NullPointer if `_inner` is a nul-pointer.
     fn new(_inner: *mut T) -> Result<Self>;
 
     /// Safely borrow the unique pointer to a inner jl_value.
@@ -37,7 +37,7 @@ where
     ///
     /// ## Errors
     ///
-    /// Returns Error::PoisonError if the inner Mutex is poisoned.  
+    /// Returns Error::PoisonError if the inner Mutex is poisoned.
     /// Returns Error::ResourceInUse if this resource is borrowed somewhere
     /// else.
     fn into_inner(self) -> Result<*mut T>;

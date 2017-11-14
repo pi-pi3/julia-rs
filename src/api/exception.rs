@@ -32,7 +32,7 @@ pub enum Exception {
     Error(Value),
     /// Type conversion cannot be done exactly
     Inexact(Value),
-    /// An error occurred when running a module's __init__ 
+    /// An error occurred when running a module's __init__
     Init(Value),
     /// The process was stopped by a terminal interrupt (^C)
     Interrupt(Value),

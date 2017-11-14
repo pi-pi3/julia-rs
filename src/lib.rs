@@ -1,7 +1,7 @@
 
 //! Safe and idiomatic [Julia](https://julialang.org) bindings for
-//! [Rust](https://rust-lang.org).  
-//! [#JuliaLang](https://twitter.com/search?q=%23JuliaLang)  
+//! [Rust](https://rust-lang.org).
+//! [#JuliaLang](https://twitter.com/search?q=%23JuliaLang)
 //! [#RustLang](https://twitter.com/search?q=%23RustLang)
 //!
 //! Uses nightly Rust for compilation, rustfmt with default settings for
