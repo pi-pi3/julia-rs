@@ -208,7 +208,7 @@ impl Julia {
 
         let name = name
             .map(|s| s.into_cstring())
-            .unwrap_or("string".into_cstring());
+            .unwrap_or_else(|| "string".into_cstring());
         let name = name.as_ptr();
 
         //let raw = unsafe { jl_load_file_string(content, len, ptr::null::<i8>() as *mut _) };
