@@ -260,7 +260,7 @@ fn main() {
                 .value_name("PATH")
                 .help("Search for shared objects in PATH")
                 .multiple(true)
-                .takes_value(true)
+                .takes_value(true),
         )
         .arg(
             Arg::with_name("dlopen")
@@ -269,7 +269,7 @@ fn main() {
                 .value_name("LIB")
                 .help("Open LIB as a shared object")
                 .multiple(true)
-                .takes_value(true)
+                .takes_value(true),
         )
         .arg(Arg::with_name("repl").short("i").long("interactive").help(
             "Interactive mode; REPL runs and isinteractive() is true",
@@ -307,7 +307,11 @@ fn main() {
 
     if let Some(paths) = dlopen {
         for path in paths {
-            dlinclude.push_str(&format!("{} = Libdl.dlopen(\"{}\")", path.replace(".so", ""), path));
+            dlinclude.push_str(&format!(
+                "{} = Libdl.dlopen(\"{}\")",
+                path.replace(".so", ""),
+                path
+            ));
         }
     }
 
