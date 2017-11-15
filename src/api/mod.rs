@@ -105,6 +105,35 @@ pub struct Julia {
 }
 
 impl Julia {
+    /// Assume that Julia was already initialized somewhere else and return a
+    /// handle.
+    ///
+    /// This function is unsafe, because if any Julia operation is called, it
+    /// will likely segfault. Also, the 4 jl_* modules might be null.
+    ///
+    /// ## Panics
+    ///
+    /// Panics if the Julia runtime was not previously initialized.
+    pub unsafe fn new_unchecked() -> Julia {
+        if !Julia::is_initialized() {
+            panic!("Julia is not initialized");
+        }
+
+        let main = Module::new_unchecked(jl_main_module);
+        let core = Module::new_unchecked(jl_core_module);
+        let base = Module::new_unchecked(jl_base_module);
+        let top = Module::new_unchecked(jl_top_module);
+
+        Julia {
+            main: main,
+            core: core,
+            base: base,
+            top: top,
+            status: 0,
+            gc: Gc,
+        }
+    }
+
     /// Initialize the Julia runtime.
     ///
     /// ## Errors
@@ -120,19 +149,8 @@ impl Julia {
         }
         jl_catch!();
 
-        let main = unsafe { Module::new_unchecked(jl_main_module) };
-        let core = unsafe { Module::new_unchecked(jl_core_module) };
-        let base = unsafe { Module::new_unchecked(jl_base_module) };
-        let top = unsafe { Module::new_unchecked(jl_top_module) };
-
-        Ok(Julia {
-            main: main,
-            core: core,
-            base: base,
-            top: top,
-            status: 0,
-            gc: Gc,
-        })
+        let jl = unsafe { Julia::new_unchecked() };
+        Ok(jl)
     }
 
     /// Returns the version of currently running Julia runtime.
