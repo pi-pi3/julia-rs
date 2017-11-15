@@ -57,7 +57,7 @@ pub struct Gc;
 
 impl Gc {
     /// Enable or disable the garbage collector.
-    pub fn enable(&self, p: bool) -> Result<()> {
+    pub fn enable(&mut self, p: bool) -> Result<()> {
         unsafe {
             jl_gc_enable(p as i32);
         }
@@ -72,7 +72,7 @@ impl Gc {
 
     /// Collect immediately. Set full to true if a full garbage collection
     /// should be issued
-    pub fn collect(&self, full: bool) -> Result<()> {
+    pub fn collect(&mut self, full: bool) -> Result<()> {
         unsafe {
             jl_gc_collect(full as i32);
         }
@@ -100,7 +100,7 @@ pub struct Julia {
     core: Module,
     base: Module,
     top: Module,
-    status: i32,
+    at_exit: Option<i32>,
     gc: Gc,
 }
 
@@ -129,7 +129,7 @@ impl Julia {
             core: core,
             base: base,
             top: top,
-            status: 0,
+            at_exit: None,
             gc: Gc,
         }
     }
@@ -149,7 +149,8 @@ impl Julia {
         }
         jl_catch!();
 
-        let jl = unsafe { Julia::new_unchecked() };
+        let mut jl = unsafe { Julia::new_unchecked() };
+        jl.at_exit = Some(0);
         Ok(jl)
     }
 
@@ -186,15 +187,25 @@ impl Julia {
         &self.gc
     }
 
+    /// Returns a mutable reference to the garbage collector.
+    pub fn gc_mut(&mut self) -> &mut Gc {
+        &mut self.gc
+    }
+
     /// Checks if Julia was already initialized in the current thread.
     pub fn is_initialized() -> bool {
         unsafe { jl_is_initialized() != 0 }
     }
 
-    /// Sets own status to status and consumes Julia, causing the value to be
+    /// Sets status to at_exit and consumes Julia, causing the value to be
     /// dropped.
-    pub fn exit(mut self, status: i32) {
-        self.status = status
+    pub fn exit(mut self, at_exit: i32) {
+        self.at_exit(Some(at_exit))
+    }
+
+    /// Sets status.
+    pub fn at_exit(&mut self, at_exit: Option<i32>) {
+        self.at_exit = at_exit;
     }
 
     /// Returns a handle to the main module.
@@ -248,8 +259,6 @@ impl Julia {
 
 impl Drop for Julia {
     fn drop(&mut self) {
-        unsafe {
-            jl_atexit_hook(self.status);
-        }
+        self.at_exit.map(|s| unsafe { jl_atexit_hook(s) });
     }
 }
