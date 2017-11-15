@@ -35,3 +35,6 @@ ccall((:square_decl, :libsquare), Void, ())
 println("square(4.0) = ", square(4.0))
 
  */
+
+// This is just to make this compilable as a binary.
+pub fn main() {}
