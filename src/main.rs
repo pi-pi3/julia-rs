@@ -48,6 +48,10 @@ use julia::api::{Julia, Value};
 use julia::error::Error;
 use julia::version;
 
+const INITREPL_JL: &str = "isinteractive() = true
+exit() = println(\"Sorry! Use C-D to exit.\")
+exit(s) = exit()";
+
 macro_rules! errprintln {
     ($msg:expr) => { eprintln!("{}", msg.bright_red().bold()); };
     ($fmt:expr, $err:expr) => {
@@ -272,12 +276,6 @@ fn main() {
         }
     };
 
-    jl.eval_string("exit() = println(\"Sorry! Use C-D to exit.\")")
-        .expect("Couldn't override `exit()`");
-    jl.eval_string("exit(s) = exit()").expect(
-        "Couldn't override `exit(status)`",
-    );
-
     let mut repl_default = true;
 
     if let Some(eval) = eval {
@@ -318,6 +316,8 @@ fn main() {
     let repl = repl || repl_default;
 
     if repl {
+        jl.load(&mut INITREPL_JL.as_bytes(), Some("initrepl.jl"))
+            .expect("Could not load initrepl.jl");
         interactive(jl, quiet);
     }
 }
