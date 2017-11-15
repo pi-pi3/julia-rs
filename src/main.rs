@@ -253,6 +253,24 @@ fn main() {
                 .multiple(true)
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name("dlpath")
+                .short("S")
+                .long("so")
+                .value_name("PATH")
+                .help("Search for shared objects in PATH")
+                .multiple(true)
+                .takes_value(true)
+        )
+        .arg(
+            Arg::with_name("dlopen")
+                .short("l")
+                .long("lib")
+                .value_name("LIB")
+                .help("Open LIB as a shared object")
+                .multiple(true)
+                .takes_value(true)
+        )
         .arg(Arg::with_name("repl").short("i").long("interactive").help(
             "Interactive mode; REPL runs and isinteractive() is true",
         ))
@@ -265,6 +283,8 @@ fn main() {
     let eval = matches.values_of("eval");
     let print = matches.values_of("print");
     let load = matches.values_of("load");
+    let dlpath = matches.values_of("dlpath");
+    let dlopen = matches.values_of("dlopen");
     let repl = matches.is_present("repl");
     let quiet = matches.is_present("quiet");
 
@@ -277,6 +297,24 @@ fn main() {
     };
 
     let mut repl_default = true;
+
+    let mut dlinclude = String::new();
+    if let Some(paths) = dlpath {
+        for path in paths {
+            dlinclude.push_str(&format!("push!(Libdl.DL_LOAD_PATH, \"{}\")\n", path));
+        }
+    }
+
+    if let Some(paths) = dlopen {
+        for path in paths {
+            dlinclude.push_str(&format!("{} = Libdl.dlopen(\"{}\")", path.replace(".so", ""), path));
+        }
+    }
+
+    if !dlinclude.is_empty() {
+        jl.load(&mut dlinclude.as_bytes(), Some("dlinclude.jl"))
+            .expect("Could not load dlinclude.jl");
+    }
 
     if let Some(eval) = eval {
         for expr in eval {
