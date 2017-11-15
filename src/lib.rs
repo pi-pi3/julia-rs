@@ -47,6 +47,8 @@ extern crate smallvec;
 extern crate julia_sys;
 
 pub mod sys;
+#[macro_use]
+pub mod ext;
 pub mod error;
 #[macro_use]
 pub mod string;
