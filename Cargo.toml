@@ -1,6 +1,6 @@
 [package]
 name = "julia"
-version = "0.2.4"
+version = "0.2.5"
 authors = ["Szymon Walter <walter.szymon.98@gmail.com>"]
 license = "Zlib"
 readme = "README.md"
@@ -21,7 +21,7 @@ liner = "0.4"
 clap = "2.25"
 
 [dependencies.julia-sys]
-version = "0.1"
+version = "0.2"
 path = "julia-sys"
 
 [[bin]]
