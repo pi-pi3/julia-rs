@@ -8,6 +8,6 @@ Raw FFI Julia bindings generated with [bindgen](https://crates.io/bindgen)
 
 ```
 [dependencies]
-julia-sys = "0.1"
+julia-sys = "0.2"
 ...
 ```
