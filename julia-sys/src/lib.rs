@@ -1,4 +1,6 @@
 
+#![feature(core_intrinsics)]
+
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
@@ -10,6 +12,9 @@ extern crate libc;
 use libc::{c_void, c_char};
 use std::mem;
 use std::ptr;
+
+mod threads;
+pub use threads::*;
 
 pub unsafe fn jl_astaggedvalue<T>(v: *mut T) -> *mut jl_taggedvalue_t {
     (v as *const c_char).offset(-(mem::size_of::<jl_taggedvalue_t>() as isize)) as *mut jl_taggedvalue_t 
@@ -566,37 +571,58 @@ pub unsafe fn jl_apply<T>(args: *mut *mut T, nargs: usize) -> *mut jl_value_t {
     jl_apply_generic(args as *mut *mut jl_value_t, nargs as u32)
 }
 
+pub unsafe fn jl_lock_frame_push(lock: *mut jl_mutex_t) {
+    let ptls = jl_get_ptls_states();
+    if (*ptls).current_task.is_null() {
+        return;
+    }
+
+    let locks = &mut (*(*ptls).current_task).locks as *mut arraylist_t;
+    let len = (*locks).len;
+
+    if len >= (*locks).max {
+        arraylist_grow(locks, 1);
+    } else {
+        (*locks).len = len + 1;
+    }
+    *(*locks).items.offset(len as isize) = lock as *mut _;
+}
+
+pub unsafe fn jl_lock_frame_pop() {
+    let ptls = jl_get_ptls_states();
+    if !(*ptls).current_task.is_null() {
+        (*(*ptls).current_task).locks.len -= 1;
+    }
+}
+
 pub unsafe fn jl_eh_restore_state(eh: *mut jl_handler_t) {
     let ptls = jl_get_ptls_states();
     let current_task = (*ptls).current_task;
-    // `eh` may not be `(*((*ptls).current_task)).eh`. See `jl_pop_handler`
-    // This function should **NOT** have any safepoint before the ones at the
-    // end.
+    
     let old_defer_signal = (*ptls).defer_signal;
     let old_gc_state = (*ptls).gc_state;
     (*current_task).eh = (*eh).prev;
     (*ptls).pgcstack = (*eh).gcstack;
-// TODO
-/*
-#ifdef JULIA_ENABLE_THREADING
-    let locks = &(*current_task).locks;
+
+    let locks = &mut (*current_task).locks as *mut arraylist_t;
     if (*locks).len > (*eh).locks_len {
-        for i in ((*eh).locks_len .. (*locks).len).rev() {
+        let mut i = (*locks).len;
+        while i < (*eh).locks_len {
             jl_mutex_unlock_nogc(*((*locks).items.offset((i - 1) as isize)) as *mut jl_mutex_t);
+            i += 1;
         }
         (*locks).len = (*eh).locks_len;
     }
-#endif
-*/
+
     (*ptls).world_age = (*eh).world_age;
     (*ptls).defer_signal = (*eh).defer_signal;
     (*ptls).gc_state = (*eh).gc_state;
     (*ptls).finalizers_inhibited = (*eh).finalizers_inhibited;
     if old_gc_state != 0 && (*eh).gc_state == 0 {
-        // jl_gc_safepoint_(ptls); TODO: julia_threads.h
+        jl_gc_safepoint_(ptls);
     }
     if old_defer_signal != 0 && (*eh).defer_signal == 0 {
-        // jl_sigint_safepoint(ptls); TODO: julia_threads.h
+        jl_sigint_safepoint(ptls);
     }
 }
 
