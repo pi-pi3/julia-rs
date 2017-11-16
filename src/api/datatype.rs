@@ -2,36 +2,43 @@
 //! Module providing wrappers for the native Julia type-types.
 
 use std::ptr;
+use std::result;
+use std::convert::TryFrom;
 
 use sys::*;
 use error::{Result, Error};
 use api::{Value, JlValue, IntoSymbol, Array, Svec};
 
+#[derive(Clone, Copy, Hash, PartialEq, Debug)]
+pub enum VarargKind {
+    None,
+    Int,
+    Bound,
+    Unbound,
+}
+
+impl TryFrom<u32> for VarargKind {
+    type Error = ();
+    fn try_from(kind: u32) -> result::Result<VarargKind, ()> {
+        match kind {
+            0 => Ok(VarargKind::None),
+            1 => Ok(VarargKind::Int),
+            2 => Ok(VarargKind::Bound),
+            3 => Ok(VarargKind::Unbound),
+            _ => Err(()),
+        }
+    }
+}
+
 jlvalues! {
+    pub struct Type(jl_value_t);
     pub struct Datatype(jl_datatype_t);
     pub struct Union(jl_uniontype_t);
     pub struct UnionAll(jl_unionall_t);
+    pub struct Tuple(jl_tupletype_t);
 }
 
-impl Datatype {
-    /// Creates a new Julia struct of this type.
-    pub fn new_struct<I>(&self, params: I) -> Result<Value>
-    where
-        I: IntoIterator<Item = Value>,
-    {
-        let mut paramv = vec![];
-        for p in params {
-            paramv.push(p.lock()?);
-        }
-        let nparam = paramv.len();
-        let paramv = paramv.as_mut_ptr();
-
-        let dt = self.lock()?;
-        let value = unsafe { jl_new_structv(dt, paramv, nparam as u32) };
-        jl_catch!();
-        Value::new(value)
-    }
-
+impl Type {
     /// Creates a new Julia array of this type.
     pub fn new_array<I>(&self, params: I) -> Result<Array>
     where
@@ -50,10 +57,170 @@ impl Datatype {
             unsafe {
                 jl_arrayset(array, p, i);
             }
-            jl_catch!();
         }
+        jl_catch!();
 
         Array::new(array)
+    }
+
+    pub fn apply_type<'a, I>(&self, params: I) -> Result<Type>
+    where
+        I: IntoIterator<Item=&'a Value>,
+    {
+        let mut paramv = vec![];
+        for p in params {
+            paramv.push(p.lock()?);
+        }
+        let nparam = paramv.len();
+        let paramv = paramv.as_mut_ptr();
+
+        let tc = self.lock()?;
+        let raw = unsafe { jl_apply_type(tc, paramv, nparam) };
+        jl_catch!();
+        Type::new(raw)
+    }
+
+    pub fn apply_type1(&self, p1: &Value) -> Result<Type> {
+        let tc = self.lock()?;
+        let p1 = p1.lock()?;
+
+        let raw = unsafe { jl_apply_type1(tc, p1) };
+        jl_catch!();
+        Type::new(raw)
+    }
+
+    pub fn apply_type2(&self, p1: &Value, p2: &Value) -> Result<Type> {
+        let tc = self.lock()?;
+        let p1 = p1.lock()?;
+        let p2 = p2.lock()?;
+
+        let raw = unsafe { jl_apply_type2(tc, p1, p2) };
+        jl_catch!();
+        Type::new(raw)
+    }
+
+    /// Applies function to the inner pointer.
+    pub fn map<T, F>(&self, f: F) -> Result<T>
+    where
+        F: FnOnce(*mut jl_value_t) -> T,
+    {
+        self.lock().map(f)
+    }
+
+    /// Applies function to the inner pointer and returns a default value if
+    /// its poisoned.
+    pub fn map_or<T, F>(&self, f: F, optb: T) -> T
+    where
+        F: FnOnce(*mut jl_value_t) -> T,
+    {
+        self.lock().map(f).unwrap_or(optb)
+    }
+
+    /// Applies function to the inner pointer and executes a default function if
+    /// its poisoned.
+    pub fn map_or_else<T, F, O>(&self, f: F, op: O) -> T
+    where
+        F: FnOnce(*mut jl_value_t) -> T,
+        O: FnOnce(Error) -> T,
+    {
+        self.lock().map(f).unwrap_or_else(op)
+    }
+
+    pub fn unwrap_vararg(&self) -> Result<Type> {
+        let inner = self.lock()?;
+
+        let raw = unsafe { jl_unwrap_vararg(inner) };
+        Type::new(raw)
+    }
+
+    pub fn vararg_kind(&self) -> Result<VarargKind> {
+        let inner = self.lock()?;
+
+        let kind = unsafe { jl_vararg_kind(inner) };
+        Ok(VarargKind::try_from(kind).unwrap())
+    }
+
+    /// Checks if the inner Mutex is poisoned.
+    pub fn is_ok(&self) -> bool {
+        !self._inner.is_poisoned()
+    }
+
+    /// Checks if the value is a leaf type, i.e. not abstract and concrete.
+    pub fn is_leaf_type(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_leaf_type(v as *mut _) != 0 }, false)
+    }
+
+    /// Checks if the value is a type.
+    pub fn is_type(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_type(v as *mut _) }, false)
+    }
+    /// Checks if the value is a kind.
+    pub fn is_kind(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_kind(v as *mut _) }, false)
+    }
+    /// Checks if the value is a primitivetype.
+    pub fn is_primitivetype(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_primitivetype(v) }, false)
+    }
+    /// Checks if the value is a structtype.
+    pub fn is_structtype(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_structtype(v) }, false)
+    }
+    /// Checks if the value is a array_type.
+    pub fn is_array_type(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_array_type(v) }, false)
+    }
+    /// Checks if the value is a abstracttype.
+    pub fn is_abstracttype(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_abstracttype(v) }, false)
+    }
+    /// Checks if the value is a array.
+    pub fn is_array(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_array(v) }, false)
+    }
+    /// Checks if the value is a cpointer_type.
+    pub fn is_cpointer_type(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_cpointer_type(v) }, false)
+    }
+    /// Checks if the value is a abstract_ref_type.
+    pub fn is_abstract_ref_type(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_abstract_ref_type(v) }, false)
+    }
+    /// Checks if the value is a tuple_type.
+    pub fn is_tuple_type(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_tuple_type(v) }, false)
+    }
+    /// Checks if the value is a vecelement_type.
+    pub fn is_vecelement_type(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_vecelement_type(v) }, false)
+    }
+    /// Checks if the value is a type_type.
+    pub fn is_type_type(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_type_type(v) }, false)
+    }
+    /// Checks if the value is a vararg_type.
+    pub fn is_vararg_type(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_vararg_type(v) }, false)
+    }
+}
+
+impl Datatype {
+    /// Creates a new Julia struct of this type.
+    pub fn new_struct<'a, I>(&self, params: I) -> Result<Value>
+    where
+        I: IntoIterator<Item=&'a Value>,
+    {
+        let mut paramv = vec![];
+        for p in params {
+            paramv.push(p.lock()?);
+        }
+        let nparam = paramv.len();
+        let paramv = paramv.as_mut_ptr();
+
+        let dt = self.lock()?;
+        let value = unsafe { jl_new_structv(dt, paramv, nparam as u32) };
+        jl_catch!();
+        Value::new(value)
     }
 
     /// Creates a new Julia primitive of this type.
@@ -135,6 +302,68 @@ impl Datatype {
 impl Default for Datatype {
     fn default() -> Datatype {
         Datatype::any()
+    }
+}
+
+impl Union {
+    /// Create a union of types.
+    pub fn union<'a, I>(ts: I) -> Result<Union>
+    where
+        I: IntoIterator<Item=&'a Datatype>,
+    {
+        let mut vec = vec![];
+        for t in ts {
+            vec.push(t.lock()?);
+        }
+        let n = vec.len();
+        let ts_ptr = vec.as_mut_ptr();
+
+        let raw = unsafe { jl_type_union(ts_ptr as *mut *mut _, n) };
+        jl_catch!();
+        Union::new(raw as *mut _)
+    }
+
+    /// Get the union that is an intersection of two types.
+    pub fn intersection(a: &Union, b: &Union) -> Result<Union> {
+        let a = a.lock()?;
+        let b = b.lock()?;
+
+        let raw = unsafe { jl_type_intersection(a as *mut _, b as *mut _) };
+        jl_catch!();
+        Union::new(raw as *mut _)
+    }
+
+    /// Check if the intersection of two unions is empty.
+    pub fn has_empty_intersection(a: &Union, b: &Union) -> Result<bool> {
+        let a = a.lock()?;
+        let b = b.lock()?;
+
+        let p = unsafe { jl_has_empty_intersection(a as *mut _, b as *mut _) };
+        jl_catch!();
+        Ok(p != 0)
+    }
+}
+
+impl UnionAll {
+    /// Instantiate a UnionAll into a more concrete type.
+    /// Not guaranteed to be a concrete datatype.
+    pub fn instantiate(&self, p: &Value) -> Result<Type> {
+        let inner = self.lock()?;
+        let p = p.lock()?;
+
+        let raw = unsafe { jl_instantiate_unionall(inner, p) };
+        jl_catch!();
+        Type::new(raw)
+    }
+}
+
+impl Tuple {
+    pub fn apply(params: &Svec) -> Result<Tuple> {
+        let params = params.lock()?;
+
+        let raw = unsafe { jl_apply_tuple_type(params) };
+        jl_catch!();
+        Tuple::new(raw)
     }
 }
 

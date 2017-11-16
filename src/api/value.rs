@@ -489,13 +489,17 @@ impl Value {
     pub fn is_intrinsic(&self) -> bool {
         self.map_or(|v| unsafe { jl_is_intrinsic(v) }, false)
     }
-    /// Checks if the value is a kind.
-    pub fn is_kind(&self) -> bool {
-        self.map_or(|v| unsafe { jl_is_kind(v) }, false)
+    /// Checks if the value is a bits.
+    pub fn is_bits(&self) -> bool {
+        self.map_or(|v| unsafe { jl_isbits(v) }, false)
     }
     /// Checks if the value is a type.
     pub fn is_type(&self) -> bool {
         self.map_or(|v| unsafe { jl_is_type(v) }, false)
+    }
+    /// Checks if the value is a kind.
+    pub fn is_kind(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_kind(v) }, false)
     }
     /// Checks if the value is a primitivetype.
     pub fn is_primitivetype(&self) -> bool {
@@ -505,17 +509,13 @@ impl Value {
     pub fn is_structtype(&self) -> bool {
         self.map_or(|v| unsafe { jl_is_structtype(v) }, false)
     }
-    /// Checks if the value is a bits.
-    pub fn is_bits(&self) -> bool {
-        self.map_or(|v| unsafe { jl_isbits(v) }, false)
+    /// Checks if the value is a array_type.
+    pub fn is_array_type(&self) -> bool {
+        self.map_or(|v| unsafe { jl_is_array_type(v) }, false)
     }
     /// Checks if the value is a abstracttype.
     pub fn is_abstracttype(&self) -> bool {
         self.map_or(|v| unsafe { jl_is_abstracttype(v) }, false)
-    }
-    /// Checks if the value is a array_type.
-    pub fn is_array_type(&self) -> bool {
-        self.map_or(|v| unsafe { jl_is_array_type(v) }, false)
     }
     /// Checks if the value is a array.
     pub fn is_array(&self) -> bool {

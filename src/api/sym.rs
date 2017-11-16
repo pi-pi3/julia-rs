@@ -25,6 +25,24 @@ impl Symbol {
         let raw = unsafe { jl_symbol(name.as_ptr()) };
         Symbol::new(raw).map_err(|_| Error::InvalidSymbol)
     }
+
+    // This never fails.
+    /// Procedurally generates a new symbol.
+    pub fn gensym() -> Symbol {
+        unsafe {
+            let raw = jl_gensym();
+            Symbol::new_unchecked(raw)
+        }
+    }
+
+    // This never fails.
+    /// Returns `symtab`, the root symbol.
+    pub fn get_root() -> Symbol {
+        unsafe {
+            let raw = jl_get_root_symbol();
+            Symbol::new_unchecked(raw)
+        }
+    }
 }
 
 impl IntoSymbol for Symbol {

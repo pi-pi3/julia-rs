@@ -5,26 +5,23 @@ This is the roadmap containing detailed information on all goals that need to be
 hit before a release.
 
 # 0.3
-- [ ] jl\_egal
-- [ ] jl\_object\_id
-- [ ] jl\_is\_leaf\_type
-- [ ] jl\_type\_union
-- [ ] jl\_type\_intersection
-- [ ] jl\_has\_empty\_intersection
+- [x] jl\_is\_leaf\_type
+- [x] jl\_type\_union
+- [x] jl\_type\_intersection
+- [x] jl\_has\_empty\_intersection
 - [ ] jl\_type\_unionall
 - [ ] jl\_new\_typename
 - [ ] jl\_new\_typevar
-- [ ] jl\_new\_typevar
-- [ ] jl\_instantiate\_unionall
-- [ ] jl\_apply\_type
-- [ ] jl\_apply\_type1
-- [ ] jl\_apply\_type2
-- [ ] jl\_apply\_tuple\_type
-- [ ] jl\_gensym
-- [ ] jl\_get\_root\_symbol
-- [ ] jl\_is\_vararg\_type
-- [ ] jl\_unwrap\_vararg
-- [ ] jl\_vararg\_kind
+- [x] jl\_instantiate\_unionall
+- [x] jl\_apply\_type
+- [x] jl\_apply\_type1
+- [x] jl\_apply\_type2
+- [x] jl\_apply\_tuple\_type
+- [x] jl\_gensym
+- [x] jl\_get\_root\_symbol
+- [x] jl\_is\_vararg\_type
+- [x] jl\_unwrap\_vararg
+- [x] jl\_vararg\_kind
 - [ ] jl\_is\_va\_tuple
 - [ ] jl\_va\_tuple\_kind
 - [ ] jl\_new\_array
