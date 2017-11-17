@@ -4,54 +4,62 @@
 use smallvec::SmallVec;
 
 use sys::*;
-use error::{Result, Error};
-use super::{JlValue, Value};
+use error::Result;
+use api::Ref;
 
-jlvalues! {
-    pub struct Function(jl_function_t);
-}
+wrap_ref! { pub struct Function(Ref); }
 
 impl Function {
-    /// Call with a sequence of Value-s.
-    pub fn call<'a, I>(&self, args: I) -> Result<Value>
+    /// Call with a sequence of Ref-s.
+    pub fn call<'a, I>(&self, args: I) -> Result<Ref>
     where
-        I: IntoIterator<Item = &'a Value>,
+        I: IntoIterator<Item = &'a Ref>,
     {
         let mut argv = SmallVec::<[*mut jl_value_t; 8]>::new();
         for arg in args {
             argv.push(arg.lock()?);
         }
 
-        let ret = unsafe { jl_call(self.lock()?, argv.as_mut_ptr(), argv.len() as i32) };
+        let raw = self.lock()?;
+
+        let ret = unsafe { jl_call(raw, argv.as_mut_ptr(), argv.len() as i32) };
         jl_catch!();
-        Value::new(ret).map_err(|_| Error::CallError)
+        Ok(Ref::new(ret))
     }
 
-    /// Call with 0 Value-s.
-    pub fn call0(&self) -> Result<Value> {
-        let ret = unsafe { jl_call0(self.lock()?) };
+    /// Call with 0 Ref-s.
+    pub fn call0(&self) -> Result<Ref> {
+        let raw = self.lock()?;
+
+        let ret = unsafe { jl_call0(raw) };
         jl_catch!();
-        Value::new(ret).map_err(|_| Error::CallError)
+        Ok(Ref::new(ret))
     }
 
-    /// Call with 1 Value.
-    pub fn call1(&self, arg1: &Value) -> Result<Value> {
-        let ret = unsafe { jl_call1(self.lock()?, arg1.lock()?) };
+    /// Call with 1 Ref.
+    pub fn call1(&self, arg1: &Ref) -> Result<Ref> {
+        let raw = self.lock()?;
+
+        let ret = unsafe { jl_call1(raw, arg1.lock()?) };
         jl_catch!();
-        Value::new(ret).map_err(|_| Error::CallError)
+        Ok(Ref::new(ret))
     }
 
-    /// Call with 2 Value-s.
-    pub fn call2(&self, arg1: &Value, arg2: &Value) -> Result<Value> {
-        let ret = unsafe { jl_call2(self.lock()?, arg1.lock()?, arg2.lock()?) };
+    /// Call with 2 Ref-s.
+    pub fn call2(&self, arg1: &Ref, arg2: &Ref) -> Result<Ref> {
+        let raw = self.lock()?;
+
+        let ret = unsafe { jl_call2(raw, arg1.lock()?, arg2.lock()?) };
         jl_catch!();
-        Value::new(ret).map_err(|_| Error::CallError)
+        Ok(Ref::new(ret))
     }
 
-    /// Call with 3 Value-s.
-    pub fn call3(&self, arg1: &Value, arg2: &Value, arg3: &Value) -> Result<Value> {
-        let ret = unsafe { jl_call3(self.lock()?, arg1.lock()?, arg2.lock()?, arg3.lock()?) };
+    /// Call with 3 Ref-s.
+    pub fn call3(&self, arg1: &Ref, arg2: &Ref, arg3: &Ref) -> Result<Ref> {
+        let raw = self.lock()?;
+
+        let ret = unsafe { jl_call3(raw, arg1.lock()?, arg2.lock()?, arg3.lock()?) };
         jl_catch!();
-        Value::new(ret).map_err(|_| Error::CallError)
+        Ok(Ref::new(ret))
     }
 }

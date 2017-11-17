@@ -1,85 +1,128 @@
 
-//! Module containing traits, types and macros for interfacing with Julia
-//! values.
-
+use std::fmt;
+use std::rc::Rc;
+use std::sync::Mutex;
+use std::ptr::Unique;
 use std::convert::TryFrom;
-use std::ffi::CStr;
+use std::result::Result as StdResult;
 
 use sys::*;
 use error::{Result, Error};
 use string::{IntoCString, TryIntoString};
-use api::{Datatype, Function, IntoSymbol};
+use api::{Void, Pointer, Datatype, Function, IntoSymbol};
 
-/// The trait implemented by every Julia type.
-pub trait JlValue<T>
-where
-    Self: Sized,
-{
-    /// Construct a new JlValue from a raw pointer obtained from Julia.
-    unsafe fn new_unchecked(_inner: *mut T) -> Self;
+pub trait ToJulia {
+    type Error;
+    fn to_julia(self) -> StdResult<Ref, Self::Error>;
+}
 
-    /// Construct a new JlValue from a raw pointer obtained from Julia while
+pub trait FromJulia: Sized {
+    type Error;
+    fn from_julia(jl_ref: &Ref) -> StdResult<Self, Self::Error>;
+}
+
+#[derive(Clone)]
+pub struct Ref {
+    pub(crate) inner: Rc<Mutex<Unique<Void>>>,
+}
+
+impl Ref {
+    /// Construct a new Ref from a raw pointer obtained from Julia.
+    unsafe fn new_unchecked(inner: Pointer) -> Ref {
+        Ref {
+            inner: Rc::new(Mutex::new(Unique::new_unchecked(inner))),
+        }
+    }
+
+    /// Construct a new Ref from a raw pointer obtained from Julia while
     /// previously validating it.
     ///
-    /// ## Errors
+    /// # Panics
     ///
-    /// Returns Error::NullPointer if `_inner` is a nul-pointer.
-    fn new(_inner: *mut T) -> Result<Self>;
+    /// Panics if `inner` is a nul-pointer.
+    pub fn new<T>(inner: *mut T) -> Self {
+        if inner.is_null() {
+            panic!("cannot use a nul-pointer")
+        } else {
+            unsafe {
+                Ref::new_unchecked(inner as Pointer)
+            }
+        }
+    }
+
+    /// Nothing, Nil, Null, None.
+    pub fn nothing() -> Ref {
+        unsafe { Ref::new_unchecked(jl_nothing as Pointer) }
+    }
 
     /// Safely borrow the unique pointer to a inner jl_value.
     ///
-    /// ## Errors
+    /// # Errors
     ///
     /// Returns Error::PoisonError if the inner Mutex is poisoned.
-    fn lock(&self) -> Result<*mut T>;
+    pub fn lock<T>(&self) -> Result<*mut T> {
+        self.inner
+            .lock()
+            .map(|ptr| ptr.as_ptr() as *mut T)
+            .map_err(From::from)
+    }
 
     /// Take ownership of the inner jl_value.
     ///
-    /// ## Errors
+    /// # Errors
     ///
     /// Returns Error::PoisonError if the inner Mutex is poisoned.
     /// Returns Error::ResourceInUse if this resource is borrowed somewhere
     /// else.
-    fn into_inner(self) -> Result<*mut T>;
+    pub fn into_inner<T>(self) -> Result<*mut T> {
+        Rc::try_unwrap(self.inner)?
+            .into_inner()
+            .map(|ptr| ptr.as_ptr() as *mut T)
+            .map_err(From::from)
+    }
 
     /// Add a finalizer, a function that will be run when the object is
     /// collected.
-    fn add_finalizer(&self, f: &Function) -> Result<()> {
+    pub fn add_finalizer(&self, f: &Ref) -> Result<()> {
+        let raw = self.lock()?;
+        let f = f.lock()?;
+
         unsafe {
-            jl_gc_add_finalizer(self.lock()? as *mut _, f.lock()?);
+            jl_gc_add_finalizer(raw, f);
         }
         jl_catch!();
         Ok(())
     }
 
     /// Consume and finalize self.
-    fn finalize(self) -> Result<()> {
+    pub fn finalize(self) -> Result<()> {
+        let raw = self.into_inner()?;
+
         unsafe {
-            jl_finalize(self.into_inner()? as *mut _);
+            jl_finalize(raw);
         }
         jl_catch!();
         Ok(())
     }
 
     /// Returns the name of the type.
-    fn typename(&self) -> Result<String> {
-        let raw = self.lock()? as *mut jl_value_t;
+    pub fn typename(&self) -> Result<String> {
+        let raw = self.lock()?;
+
         let t = unsafe { jl_typeof_str(raw) };
-        jl_catch!();
-        t.try_into_string()
+        Ok(t.try_into_string().unwrap())
     }
 
     /// Returns the type of the object as a Datatype.
-    fn datatype(&self) -> Result<Datatype> {
-        let raw = self.lock()? as *mut jl_value_t;
+    pub fn datatype(&self) -> Result<Datatype> {
+        let raw = self.lock()?;
+
         let dt = unsafe { jl_typeof(raw) };
-        jl_catch!();
-        Datatype::new(dt as *mut jl_datatype_t)
+        Ok(Datatype(Ref::new(dt)))
     }
 
     /// Returns the value of a field if it exists.
-    fn get<S: IntoSymbol>(&self, field: S) -> Result<Value> {
-        let raw = self.lock()? as *mut jl_value_t;
+    pub fn get<S: IntoSymbol>(&self, field: S) -> Result<Ref> {
         let field = field.into_symbol()?;
         let field = field.lock()?;
         let dt = self.datatype()?;
@@ -91,15 +134,16 @@ where
             return Err(Error::InvalidSymbol);
         }
         let idx = idx as usize;
+
+        let raw = self.lock()?;
 
         let value = unsafe { jl_get_nth_field(raw, idx) };
         jl_catch!();
-        Value::new(value)
+        Ok(Ref::new(value))
     }
 
     /// Sets the value of a field if it exists.
-    fn set<S: IntoSymbol>(&self, field: S, value: &Value) -> Result<()> {
-        let raw = self.lock()? as *mut jl_value_t;
+    pub fn set<S: IntoSymbol>(&self, field: S, value: &Ref) -> Result<()> {
         let field = field.into_symbol()?;
         let field = field.lock()?;
         let dt = self.datatype()?;
@@ -112,192 +156,61 @@ where
         }
         let idx = idx as usize;
 
+        let raw = self.lock()?;
         let value = value.lock()?;
+
         unsafe { jl_set_nth_field(raw, idx, value) };
         jl_catch!();
         Ok(())
     }
 
-    /// Constructs an object of type Self from another object that implements
-    /// JlValue.
-    fn from_value<U, A: JlValue<U>>(val: A) -> Result<Self> {
-        let raw = val.into_inner()? as *mut T;
-        Self::new(raw)
-    }
-
-    /// Consumes self and returns an object of another type with the same inner
-    /// pointer.
-    fn into_value<U, A: JlValue<U>>(self) -> Result<A> {
-        let raw = self.into_inner()? as *mut U;
-        A::new(raw)
-    }
-}
-
-macro_rules! simple_jlvalue {
-    ($name:ident, $type:ty) => {
-        #[derive(Clone)]
-        pub struct $name {
-            _inner: ::std::rc::Rc<::std::sync::Mutex<::std::ptr::Unique<$type>>>,
-        }
-
-        impl $crate::api::JlValue<$type> for $name {
-            unsafe fn new_unchecked(_inner: *mut $type) -> $name {
-                $name {
-                    _inner: ::std::rc::Rc::new(
-                                ::std::sync::Mutex::new(
-                                    ::std::ptr::Unique::new_unchecked(_inner)
-                                )
-                            ),
-                }
-            }
-
-            fn new(_inner: *mut $type) -> $crate::error::Result<$name> {
-                if _inner.is_null() {
-                    Err($crate::error::Error::NullPointer)
-                } else {
-                    unsafe {
-                        Ok($name::new_unchecked(_inner))
-                    }
-                }
-            }
-
-            fn lock(&self) -> $crate::error::Result<*mut $type> {
-                self._inner
-                    .lock()
-                    .map(|ptr| ptr.as_ptr())
-                    .map_err(From::from)
-            }
-
-            fn into_inner(self) -> $crate::error::Result<*mut $type> {
-                ::std::rc::Rc::try_unwrap(self._inner)?
-                    .into_inner()
-                    .map(::std::ptr::Unique::as_ptr)
-                    .map_err(From::from)
-            }
-        }
-
-        impl ::std::fmt::Debug for $name {
-            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-                use $crate::api::JlValue;
-                let typename = self.typename().map_err(|_| ::std::fmt::Error)?;
-                write!(f, "{}({})", typename, self)
-            }
-        }
-
-        impl ::std::fmt::Display for $name {
-            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-                use ::std::convert::TryFrom;
-                use $crate::api::JlValue;
-                let jl_string = unsafe {
-                    let name = ::std::ffi::CString::new("string")
-                        .map_err(|_| ::std::fmt::Error)?;
-                    let name = name.as_ptr();
-                    $crate::sys::jl_get_function($crate::sys::jl_base_module, name)
-                };
-                jl_catch!(|ex -> ::std::fmt::Error| ::std::fmt::Error);
-                let jl_string = $crate::api::Function::new(jl_string)
-                    .map_err(|_| ::std::fmt::Error)?;
-
-                let inner = self.lock()
-                    .map_err(|_| ::std::fmt::Error)?;
-                let value = $crate::api::Value::new(inner as *mut jl_value_t)
-                    .map_err(|_| ::std::fmt::Error)?;
-
-                let string = jl_string.call1(&value)
-                    .map_err(|_| ::std::fmt::Error)?;
-                let string = String::try_from(&string)
-                    .map_err(|_| ::std::fmt::Error)?;
-
-                write!(f, "{}", string)
-            }
-        }
-    }
-}
-
-/// Creates a number of JlValue wrapper types.
-#[macro_export]
-macro_rules! jlvalues {
-    { $( pub struct $name:ident ($type:ty) );*; } => {
-        $(
-            simple_jlvalue!($name, $type);
-        )*
-    }
-}
-
-jlvalues! {
-    pub struct Expr(jl_expr_t);
-    pub struct Value(jl_value_t);
-}
-
-impl Expr {
-    /// Parse a string without evaluating it.
-    pub fn with_string(string: &str) -> Result<Expr> {
-        let len = string.len();
-        let string = string.into_cstring();
-        let string = string.as_ptr();
-
-        let raw = unsafe { jl_parse_string(string, len, 0, 0) };
-        jl_catch!();
-
-        Expr::new(raw as *mut _)
-    }
-
-    /// Evaluate expression.
-    pub fn expand(&self) -> Result<Value> {
-        let raw = self.lock()?;
-        let raw = unsafe { jl_expand(raw as *mut _) };
-        jl_catch!();
-        Value::new(raw)
-    }
-}
-
-impl Value {
-    /// Nothing, Nil, Null, None.
-    pub fn nothing() -> Value {
-        unsafe { Value::new_unchecked(jl_nothing) }
-    }
-
     /// Applies function to the inner pointer.
-    pub fn map<T, F>(&self, f: F) -> Result<T>
+    pub fn map<A, B, F>(&self, f: F) -> Result<B>
     where
-        F: FnOnce(*mut jl_value_t) -> T,
+        F: FnOnce(*mut A) -> B,
     {
         self.lock().map(f)
     }
 
     /// Applies function to the inner pointer and returns a default value if
     /// its poisoned.
-    pub fn map_or<T, F>(&self, f: F, optb: T) -> T
+    pub fn map_or<A, B, F>(&self, f: F, optb: B) -> B
     where
-        F: FnOnce(*mut jl_value_t) -> T,
+        F: FnOnce(*mut A) -> B,
     {
         self.lock().map(f).unwrap_or(optb)
     }
 
     /// Applies function to the inner pointer and executes a default function if
     /// its poisoned.
-    pub fn map_or_else<T, F, O>(&self, f: F, op: O) -> T
+    pub fn map_or_else<A, B, F, O>(&self, f: F, op: O) -> B
     where
-        F: FnOnce(*mut jl_value_t) -> T,
-        O: FnOnce(Error) -> T,
+        F: FnOnce(*mut A) -> B,
+        O: FnOnce(Error) -> B,
     {
         self.lock().map(f).unwrap_or_else(op)
     }
 
     /// Checks if the inner Mutex is poisoned.
     pub fn is_ok(&self) -> bool {
-        !self._inner.is_poisoned()
+        !self.inner.is_poisoned()
     }
 
-    /// Checks if the Value is of a concrete Datatype.
-    pub fn isa(&self, other: &Datatype) -> Result<bool> {
-        let p = unsafe { jl_isa(self.lock()?, other.lock()? as *mut _) != 0 };
+    /// Checks if the Ref is of a concrete Datatype.
+    pub fn isa(&self, dt: &Datatype) -> Result<bool> {
+        let raw = self.lock()?;
+        let dt = dt.lock()?;
+
+        let p = unsafe { jl_isa(raw, dt) != 0 };
         Ok(p)
     }
 
-    /// Checks if the types of two Values are equal.
-    pub fn types_equal(&self, other: &Value) -> Result<bool> {
-        let p = unsafe { jl_types_equal(self.lock()?, other.lock()?) != 0 };
+    /// Checks if the types of two Refs are equal.
+    pub fn types_equal(&self, other: &Ref) -> Result<bool> {
+        let raw = self.lock()?;
+        let other = other.lock()?;
+
+        let p = unsafe { jl_types_equal(raw, other) != 0 };
         Ok(p)
     }
 
@@ -547,67 +460,123 @@ impl Value {
     }
 }
 
-impl Default for Value {
-    fn default() -> Value {
-        Value::nothing()
+impl Default for Ref {
+    fn default() -> Ref {
+        Ref::nothing()
     }
 }
 
-macro_rules! box_simple {
-    ($t1:ident) => {
-        box_simple!($t1 => $t1, |val| { val } );
+impl fmt::Debug for Ref {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let typename = self.typename().map_err(|_| fmt::Error)?;
+        write!(f, "{}({})", typename, self)
+    }
+}
+
+impl fmt::Display for Ref {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let jl_string = unsafe {
+            let name = b"string\0";
+            let name = name.as_ptr();
+            jl_get_function(jl_base_module, name as *mut _)
+        };
+
+        let jl_string = Function(Ref::new(jl_string));
+
+        let string = jl_string.call1(self)
+            .map_err(|_| fmt::Error)?;
+        let string = String::from_julia(&string)
+            .map_err(|_| fmt::Error)?;
+
+        write!(f, "{}", string)
+    }
+}
+
+// # Examples
+// wrap_ref! { struct Wrapped; }
+// wrap_ref! { struct Wrapped(Expr); }
+// wrap_ref! { struct Wrapped(Expr, i64, f64); }
+// wrap_ref! { struct Wrapped { i: i64, f: f64 } }
+macro_rules! wrap_ref {
+    { pub struct $name:ident; } => {
+        wrap_ref! { pub struct $name(Ref, ); }
     };
-    ($t1:ident => $t2:ident) => {
-        box_simple!($t1 => $t2, |val| { val } );
+    { pub struct $name:ident (Ref); } => {
+        wrap_ref! { pub struct $name(Ref, ); }
     };
-    ($t1:ty => $t2:ident) => {
-        box_simple!($t1 => $t2, |val| { val } );
-    };
-    ($t1:ident, |$v:ident| $fn:expr) => {
-        box_simple!($t1 => $t1, |$v| $fn);
-    };
-    ($t1:ident => $t2:ident, |$v:ident| $fn:expr) => {
-        impl From<$t1> for Value {
-            fn from($v: $t1) -> Value {
-                unsafe { Value::new_unchecked(concat_idents!(jl_box_, $t2)($fn)) }
+    { pub struct $name:ident(Ref, $( $field:ty ),*); } => {
+        pub struct $name(pub $crate::api::Ref, $( $field ),*);
+
+        impl ::std::ops::Deref for $name {
+            type Target = $crate::api::Ref;
+            fn deref(&self) -> &$crate::api::Ref {
+                &self.0
             }
         }
+
+        impl ::std::ops::DerefMut for $name {
+            fn deref_mut(&mut self) -> &mut $crate::api::Ref {
+                &mut self.0
+            }
+        }
+    };
+    {
+        pub struct $name:ident {
+            $( $field:ident : $type:ty ),*
+        }
+    } => {
+        pub struct $name {
+            pub inner: $crate::api::Ref,
+            $( $field : $type ),*
+        }
+
+        impl ::std::ops::Deref for $name {
+            type Target = $crate::api::Ref;
+            fn deref(&self) -> &$crate::api::Ref {
+                &self.inner
+            }
+        }
+
+        impl ::std::ops::DerefMut for $name {
+            fn deref_mut(&mut self) -> &mut $crate::api::Ref {
+                &mut self.inner
+            }
+        }
+    }
+}
+
+macro_rules! impl_to_julia {
+    ($t1:ty => $t2:ident) => {
+        impl_to_julia!($t1 => $t2, |val| { val } );
     };
     ($t1:ty => $t2:ident, |$v:ident| $fn:expr) => {
-        impl From<$t1> for Value {
-            fn from($v: $t1) -> Value {
-                unsafe { Value::new_unchecked(concat_idents!(jl_box_, $t2)($fn)) }
+        impl ToJulia for $t1 {
+            type Error = Error;
+            fn to_julia(self) -> Result<Ref> {
+                let $v = self;
+                let jl_ref = unsafe { Ref::new(concat_idents!(jl_box_, $t2)($fn)) };
+                Ok(jl_ref)
             }
         }
     }
 }
 
-macro_rules! unbox_simple {
-    ($t1:ty) => {
-        unbox_simple!($t1 => $t1);
-    };
+macro_rules! impl_from_julia {
     ($t1:ident => $t2:ty) => {
-        unbox_simple!($t1 => $t2, |v| { v } );
+        impl_from_julia!($t1 => $t2, |v| { v } );
     };
     ($t1:ident => $t2:ty, |$v:ident| $fn:expr) => {
-        impl<'a> TryFrom<&'a Value> for $t2 {
+        impl FromJulia for $t2 {
             type Error = Error;
-            fn try_from(val: &Value) -> Result<$t2> {
-                let is_type = {
-                    let inner = val.lock()?;
-                    unsafe {
-                        concat_idents!(jl_is_, $t1)(inner)
-                    }
-                };
+            fn from_julia(jl_ref: &Ref) -> Result<$t2> {
+                let raw = jl_ref.lock()?;
+
+                let is_type = unsafe { concat_idents!(jl_is_, $t1)(raw) };
+
                 if is_type {
-                    let ret = val.lock()
-                        .map(|v| unsafe { concat_idents!(jl_unbox_, $t1)(v) })
-                        .map_err(From::from);
+                    let $v = unsafe { concat_idents!(jl_unbox_, $t1)(raw as *mut _) };
                     jl_catch!();
-                    match ret {
-                        Ok($v) => Ok($fn),
-                        Err(x) => Err(x),
-                    }
+                    Ok($fn)
                 } else {
                     Err(Error::InvalidUnbox)
                 }
@@ -616,55 +585,58 @@ macro_rules! unbox_simple {
     }
 }
 
-box_simple!(bool, |val| val as i8);
-box_simple!(char, |val| val as u32);
+impl_to_julia!(bool => bool, |val| val as i8);
+impl_to_julia!(char => char, |val| val as u32);
 
-box_simple!(i8 => int8);
-box_simple!(i16 => int16);
-box_simple!(i32 => int32);
-box_simple!(i64 => int64);
-box_simple!(isize => long);
-box_simple!(u8 => uint8);
-box_simple!(u16 => uint16);
-box_simple!(u32 => uint32);
-box_simple!(u64 => uint64);
-box_simple!(usize => ulong);
-box_simple!(f32 => float32);
-box_simple!(f64 => float64);
+impl_to_julia!(i8 => int8);
+impl_to_julia!(i16 => int16);
+impl_to_julia!(i32 => int32);
+impl_to_julia!(i64 => int64);
+impl_to_julia!(isize => long);
+impl_to_julia!(u8 => uint8);
+impl_to_julia!(u16 => uint16);
+impl_to_julia!(u32 => uint32);
+impl_to_julia!(u64 => uint64);
+impl_to_julia!(usize => ulong);
+impl_to_julia!(f32 => float32);
+impl_to_julia!(f64 => float64);
 
-impl<S: IntoCString> From<S> for Value {
-    fn from(cstr: S) -> Value {
-        let cstr = cstr.into_cstring();
-        unsafe { Value::new_unchecked(jl_cstr_to_string(cstr.as_ptr())) }
+impl<S: IntoCString> ToJulia for S {
+    type Error = Error;
+    fn to_julia(self) -> Result<Ref> {
+        let cstr = self.into_cstring();
+        let ptr = cstr.as_ptr();
+        let raw = unsafe { jl_cstr_to_string(ptr) };
+        let jl_ref = Ref::new(raw);
+        Ok(jl_ref)
     }
 }
 
-unbox_simple!(bool => bool, |val| val != 0);
-unbox_simple!(uint32 => char, |val| char::try_from(val)?);
+impl_from_julia!(bool => bool, |val| val != 0);
+impl_from_julia!(uint32 => char, |val| char::try_from(val)?);
 
-unbox_simple!(int8 => i8);
-unbox_simple!(int16 => i16);
-unbox_simple!(int32 => i32);
-unbox_simple!(int64 => i64);
-unbox_simple!(long => isize);
-unbox_simple!(uint8 => u8);
-unbox_simple!(uint16 => u16);
-unbox_simple!(uint32 => u32);
-unbox_simple!(uint64 => u64);
-unbox_simple!(ulong => usize);
-unbox_simple!(float32 => f32);
-unbox_simple!(float64 => f64);
+impl_from_julia!(int8 => i8);
+impl_from_julia!(int16 => i16);
+impl_from_julia!(int32 => i32);
+impl_from_julia!(int64 => i64);
+impl_from_julia!(long => isize);
+impl_from_julia!(uint8 => u8);
+impl_from_julia!(uint16 => u16);
+impl_from_julia!(uint32 => u32);
+impl_from_julia!(uint64 => u64);
+impl_from_julia!(ulong => usize);
+impl_from_julia!(float32 => f32);
+impl_from_julia!(float64 => f64);
 
-impl<'a> TryFrom<&'a Value> for String {
+impl FromJulia for String {
     type Error = Error;
-    fn try_from(val: &Value) -> Result<String> {
-        if val.is_string() {
-            let val = val.lock()?;
-            let raw = unsafe { jl_string_ptr(val) };
+    fn from_julia(jl_ref: &Ref) -> Result<String> {
+        if jl_ref.is_string() {
+            let raw = jl_ref.lock()?;
+            let ptr = unsafe { jl_string_ptr(raw) };
             jl_catch!();
 
-            let cstr = unsafe { CStr::from_ptr(raw) };
-            cstr.to_owned().into_string().map_err(From::from)
+            Ok(ptr.try_into_string().unwrap())
         } else {
             Err(Error::InvalidUnbox)
         }

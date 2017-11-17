@@ -11,61 +11,61 @@ use smallvec::SmallVec;
 use sys::*;
 use error::Result;
 use string::IntoCString;
-use super::{Value, JlValue, Symbol, Datatype};
+use super::{Ref, Symbol, Datatype};
 
-/// Enum containing different Julia exceptions wrapped as a Value.
+/// Enum containing different Julia exceptions wrapped as a Ref.
 #[derive(Clone)]
 pub enum Exception {
     /// The parameters to a function call do not match a valid signature
-    Argument(Value),
+    Argument(Ref),
     /// Attempt to access index out-of-bounds
-    Bounds(Value),
+    Bounds(Ref),
     /// Composite exception
-    Composite(Value),
+    Composite(Ref),
     /// Divide by zero
-    Divide(Value),
+    Divide(Ref),
     /// The argument is outside of the valid domain
-    Domain(Value),
+    Domain(Ref),
     /// No more data is available from file or stream
-    EOF(Value),
+    EOF(Ref),
     /// Generic error occurred
-    Error(Value),
+    Error(Ref),
     /// Type conversion cannot be done exactly
-    Inexact(Value),
+    Inexact(Ref),
     /// An error occurred when running a module's __init__
-    Init(Value),
+    Init(Ref),
     /// The process was stopped by a terminal interrupt (^C)
-    Interrupt(Value),
+    Interrupt(Ref),
     /// The program reached an invalid exception
-    InvalidState(Value),
+    InvalidState(Ref),
     /// Key doesn't exist in Associative- or Set-like object
-    Key(Value),
+    Key(Ref),
     /// An error occurred while include-ing, require-ing or using a file
-    Load(Value),
+    Load(Ref),
     /// Operation allocated too much memory
-    OutOfMemory(Value),
+    OutOfMemory(Ref),
     /// Operation tried to write to read-only memory
-    ReadOnlyMemory(Value),
+    ReadOnlyMemory(Ref),
     /// Remote exception occurred
-    Remote(Value),
+    Remote(Ref),
     /// Method with the required type signature doesn't exist
-    Method(Value),
+    Method(Ref),
     /// The result of an expression is too large
-    Overflow(Value),
+    Overflow(Ref),
     /// The expression couldn't be parsed as a valid Julia expression
-    Parse(Value),
+    Parse(Ref),
     /// System call failed
-    System(Value),
+    System(Ref),
     /// Type assertion failed
-    Type(Value),
+    Type(Ref),
     /// The item or field is not defined
-    UndefRef(Value),
+    UndefRef(Ref),
     /// Symbol is not defined in current scope
-    UndefVar(Value),
+    UndefVar(Ref),
     /// Byte array does not represent a valid unicode string
-    Unicode(Value),
+    Unicode(Ref),
     /// Unknown exception
-    Unknown(Value),
+    Unknown(Ref),
 }
 
 impl Exception {
@@ -81,12 +81,12 @@ impl Exception {
         unsafe {
             jl_exception_clear();
         }
-        Value::new(raw).and_then(Exception::with_value).ok()
+        Exception::with_value(Ref::new(raw)).ok()
     }
 
     // TODO: replace comparing typename with comparing a *mut jl_datatype_t.
     /// Construct a new Exception with a wrapped Julia value.
-    pub fn with_value(value: Value) -> Result<Exception> {
+    pub fn with_value(value: Ref) -> Result<Exception> {
         let typename = value.typename()?;
         let ex = match typename.as_str() {
             "ArgumentError" => Exception::Argument(value),
@@ -119,7 +119,7 @@ impl Exception {
     }
 
     /// Immutably borrows the inner value.
-    pub fn inner_ref(&self) -> &Value {
+    pub fn inner_ref(&self) -> &Ref {
         match *self {
             Exception::Argument(ref value) => value,
             Exception::Bounds(ref value) => value,
@@ -150,7 +150,7 @@ impl Exception {
     }
 
     /// Mutably borrows the inner value.
-    pub fn inner_mut(&mut self) -> &mut Value {
+    pub fn inner_mut(&mut self) -> &mut Ref {
         match *self {
             Exception::Argument(ref mut value) => value,
             Exception::Bounds(ref mut value) => value,
@@ -181,7 +181,7 @@ impl Exception {
     }
 
     /// Consumes self and returns the inner value.
-    pub fn into_inner(self) -> Value {
+    pub fn into_inner(self) -> Ref {
         match self {
             Exception::Argument(value) => value,
             Exception::Bounds(value) => value,
@@ -213,14 +213,14 @@ impl Exception {
 }
 
 impl Deref for Exception {
-    type Target = Value;
-    fn deref(&self) -> &Value {
+    type Target = Ref;
+    fn deref(&self) -> &Ref {
         self.inner_ref()
     }
 }
 
 impl DerefMut for Exception {
-    fn deref_mut(&mut self) -> &mut Value {
+    fn deref_mut(&mut self) -> &mut Ref {
         self.inner_mut()
     }
 }
@@ -324,7 +324,7 @@ pub fn too_many_args<S: IntoCString>(fname: S, max: usize) {
 }
 
 /// Invalid type in an expression.
-pub fn type_error<S: IntoCString>(fname: S, expected: &Value, got: &Value) -> Result<()> {
+pub fn type_error<S: IntoCString>(fname: S, expected: &Ref, got: &Ref) -> Result<()> {
     let fname = fname.into_cstring();
     let fname = fname.as_ptr();
     let expected = expected.lock()?;
@@ -335,7 +335,7 @@ pub fn type_error<S: IntoCString>(fname: S, expected: &Value, got: &Value) -> Re
     Ok(())
 }
 
-pub fn type_error_rt<S: IntoCString>(fname: S, context: S, ty: &Value, got: &Value) -> Result<()> {
+pub fn type_error_rt<S: IntoCString>(fname: S, context: S, ty: &Ref, got: &Ref) -> Result<()> {
     let fname = fname.into_cstring();
     let fname = fname.as_ptr();
     let context = context.into_cstring();
@@ -358,7 +358,7 @@ pub fn undefined_var_error(var: &Symbol) -> Result<()> {
 }
 
 /// Index ouf of bound.
-pub fn bounds_error(v: &Value, idx: &Value) -> Result<()> {
+pub fn bounds_error(v: &Ref, idx: &Ref) -> Result<()> {
     let v = v.lock()?;
     let idx = idx.lock()?;
     unsafe {
@@ -367,7 +367,7 @@ pub fn bounds_error(v: &Value, idx: &Value) -> Result<()> {
     Ok(())
 }
 
-pub fn bounds_error_v(v: &Value, idxs: &[Value]) -> Result<()> {
+pub fn bounds_error_v(v: &Ref, idxs: &[Ref]) -> Result<()> {
     let v = v.lock()?;
     let mut indices = SmallVec::<[*mut jl_value_t; 8]>::new();
     for i in idxs {
@@ -382,7 +382,7 @@ pub fn bounds_error_v(v: &Value, idxs: &[Value]) -> Result<()> {
 }
 
 /// Index out of bound.
-pub fn bounds_error_int(v: &Value, i: usize) -> Result<()> {
+pub fn bounds_error_int(v: &Ref, i: usize) -> Result<()> {
     let v = v.lock()?;
     unsafe {
         jl_bounds_error_int(v, i);
@@ -390,7 +390,7 @@ pub fn bounds_error_int(v: &Value, i: usize) -> Result<()> {
     Ok(())
 }
 
-pub fn bounds_error_tuple_int(v: &[Value], i: usize) -> Result<()> {
+pub fn bounds_error_tuple_int(v: &[Ref], i: usize) -> Result<()> {
     let mut vs = SmallVec::<[*mut jl_value_t; 8]>::new();
     for vi in v {
         vs.push(vi.lock()?);
@@ -405,7 +405,7 @@ pub fn bounds_error_tuple_int(v: &[Value], i: usize) -> Result<()> {
 
 // TODO
 /*
-pub fn bounds_error_unboxed_int(void *v, vt: &Value, i: usize) -> Result<()> {
+pub fn bounds_error_unboxed_int(void *v, vt: &Ref, i: usize) -> Result<()> {
     let vt = vt.lock()?;
     unsafe {
         jl_bounds_error_unboxed_int();
@@ -413,7 +413,7 @@ pub fn bounds_error_unboxed_int(void *v, vt: &Value, i: usize) -> Result<()> {
 }
 */
 
-pub fn bounds_error_ints(v: &Value, idxs: &[usize]) -> Result<()> {
+pub fn bounds_error_ints(v: &Ref, idxs: &[usize]) -> Result<()> {
     let v = v.lock()?;
     let nidxs = idxs.len();
     let idxs = idxs.as_ptr() as *mut _;

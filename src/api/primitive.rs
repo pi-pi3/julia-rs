@@ -22,6 +22,9 @@ pub trait Signed: Number + Real + Integer {}
 /// Corresponds to the Unsigned abstract type.
 pub trait Unsigned: Number + Real + Integer {}
 
+pub type Void = ();
+pub type Pointer = *mut ();
+
 pub type Bool = bool;
 impl Number for Bool {}
 impl Real for Bool {}

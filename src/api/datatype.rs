@@ -7,7 +7,7 @@ use std::convert::TryFrom;
 
 use sys::*;
 use error::{Result, Error};
-use api::{Value, JlValue, IntoSymbol, Array, Svec};
+use api::{Ref, IntoSymbol, Array, Svec};
 
 #[derive(Clone, Copy, Hash, PartialEq, Debug)]
 pub enum VarargKind {
@@ -30,19 +30,17 @@ impl TryFrom<u32> for VarargKind {
     }
 }
 
-jlvalues! {
-    pub struct Type(jl_value_t);
-    pub struct Datatype(jl_datatype_t);
-    pub struct Union(jl_uniontype_t);
-    pub struct UnionAll(jl_unionall_t);
-    pub struct Tuple(jl_tupletype_t);
-}
+wrap_ref! { pub struct Type(Ref); }
+wrap_ref! { pub struct Datatype(Ref); }
+wrap_ref! { pub struct Union(Ref); }
+wrap_ref! { pub struct UnionAll(Ref); }
+wrap_ref! { pub struct Tuple(Ref); }
 
 impl Type {
     /// Creates a new Julia array of this type.
     pub fn new_array<I>(&self, params: I) -> Result<Array>
     where
-        I: IntoIterator<Item = Value>,
+        I: IntoIterator<Item = Ref>,
     {
         let mut paramv = vec![];
         for p in params {
@@ -50,7 +48,7 @@ impl Type {
         }
 
         let dt = self.lock()?;
-        let array = unsafe { jl_alloc_array_1d(dt as *mut _, paramv.len()) };
+        let array = unsafe { jl_alloc_array_1d(dt, paramv.len()) };
         jl_catch!();
 
         for (i, p) in paramv.into_iter().enumerate() {
@@ -60,12 +58,12 @@ impl Type {
         }
         jl_catch!();
 
-        Array::new(array)
+        Ok(Array(Ref::new(array)))
     }
 
     pub fn apply_type<'a, I>(&self, params: I) -> Result<Type>
     where
-        I: IntoIterator<Item=&'a Value>,
+        I: IntoIterator<Item=&'a Ref>,
     {
         let mut paramv = vec![];
         for p in params {
@@ -77,60 +75,33 @@ impl Type {
         let tc = self.lock()?;
         let raw = unsafe { jl_apply_type(tc, paramv, nparam) };
         jl_catch!();
-        Type::new(raw)
+        Ok(Type(Ref::new(raw)))
     }
 
-    pub fn apply_type1(&self, p1: &Value) -> Result<Type> {
+    pub fn apply_type1(&self, p1: &Ref) -> Result<Type> {
         let tc = self.lock()?;
         let p1 = p1.lock()?;
 
         let raw = unsafe { jl_apply_type1(tc, p1) };
         jl_catch!();
-        Type::new(raw)
+        Ok(Type(Ref::new(raw)))
     }
 
-    pub fn apply_type2(&self, p1: &Value, p2: &Value) -> Result<Type> {
+    pub fn apply_type2(&self, p1: &Ref, p2: &Ref) -> Result<Type> {
         let tc = self.lock()?;
         let p1 = p1.lock()?;
         let p2 = p2.lock()?;
 
         let raw = unsafe { jl_apply_type2(tc, p1, p2) };
         jl_catch!();
-        Type::new(raw)
-    }
-
-    /// Applies function to the inner pointer.
-    pub fn map<T, F>(&self, f: F) -> Result<T>
-    where
-        F: FnOnce(*mut jl_value_t) -> T,
-    {
-        self.lock().map(f)
-    }
-
-    /// Applies function to the inner pointer and returns a default value if
-    /// its poisoned.
-    pub fn map_or<T, F>(&self, f: F, optb: T) -> T
-    where
-        F: FnOnce(*mut jl_value_t) -> T,
-    {
-        self.lock().map(f).unwrap_or(optb)
-    }
-
-    /// Applies function to the inner pointer and executes a default function if
-    /// its poisoned.
-    pub fn map_or_else<T, F, O>(&self, f: F, op: O) -> T
-    where
-        F: FnOnce(*mut jl_value_t) -> T,
-        O: FnOnce(Error) -> T,
-    {
-        self.lock().map(f).unwrap_or_else(op)
+        Ok(Type(Ref::new(raw)))
     }
 
     pub fn unwrap_vararg(&self) -> Result<Type> {
         let inner = self.lock()?;
 
         let raw = unsafe { jl_unwrap_vararg(inner) };
-        Type::new(raw)
+        Ok(Type(Ref::new(raw)))
     }
 
     pub fn vararg_kind(&self) -> Result<VarargKind> {
@@ -140,23 +111,18 @@ impl Type {
         Ok(VarargKind::try_from(kind).unwrap())
     }
 
-    /// Checks if the inner Mutex is poisoned.
-    pub fn is_ok(&self) -> bool {
-        !self._inner.is_poisoned()
-    }
-
     /// Checks if the value is a leaf type, i.e. not abstract and concrete.
     pub fn is_leaf_type(&self) -> bool {
-        self.map_or(|v| unsafe { jl_is_leaf_type(v as *mut _) != 0 }, false)
+        self.map_or(|v| unsafe { jl_is_leaf_type(v) != 0 }, false)
     }
 
     /// Checks if the value is a type.
     pub fn is_type(&self) -> bool {
-        self.map_or(|v| unsafe { jl_is_type(v as *mut _) }, false)
+        self.map_or(|v| unsafe { jl_is_type(v) }, false)
     }
     /// Checks if the value is a kind.
     pub fn is_kind(&self) -> bool {
-        self.map_or(|v| unsafe { jl_is_kind(v as *mut _) }, false)
+        self.map_or(|v| unsafe { jl_is_kind(v) }, false)
     }
     /// Checks if the value is a primitivetype.
     pub fn is_primitivetype(&self) -> bool {
@@ -206,9 +172,9 @@ impl Type {
 
 impl Datatype {
     /// Creates a new Julia struct of this type.
-    pub fn new_struct<'a, I>(&self, params: I) -> Result<Value>
+    pub fn new_struct<'a, I>(&self, params: I) -> Result<Ref>
     where
-        I: IntoIterator<Item=&'a Value>,
+        I: IntoIterator<Item=&'a Ref>,
     {
         let mut paramv = vec![];
         for p in params {
@@ -220,82 +186,82 @@ impl Datatype {
         let dt = self.lock()?;
         let value = unsafe { jl_new_structv(dt, paramv, nparam as u32) };
         jl_catch!();
-        Value::new(value)
+        Ok(Ref::new(value))
     }
 
     /// Creates a new Julia primitive of this type.
-    pub fn new_bits<T: Into<Vec<u8>>>(&self, data: T) -> Result<Value> {
+    pub fn new_bits<T: Into<Vec<u8>>>(&self, data: T) -> Result<Ref> {
         let data = data.into();
         let bits = data.as_ptr();
 
         let dt = self.lock()?;
-        let value = unsafe { jl_new_bits(dt as *mut _, bits as *mut _) };
+        let value = unsafe { jl_new_bits(dt, bits as *mut _) };
         jl_catch!();
-        Value::new(value)
+        Ok(Ref::new(value))
     }
 
     pub fn any() -> Datatype {
-        unsafe { Datatype::new_unchecked(jl_any_type) }
+        Datatype(Ref::new(unsafe { jl_any_type }))
     }
     pub fn number() -> Datatype {
-        unsafe { Datatype::new_unchecked(jl_number_type) }
+        Datatype(Ref::new(unsafe { jl_number_type }))
     }
     pub fn signed() -> Datatype {
-        unsafe { Datatype::new_unchecked(jl_signed_type) }
+        Datatype(Ref::new(unsafe { jl_signed_type }))
     }
     pub fn abstract_float() -> Datatype {
-        unsafe { Datatype::new_unchecked(jl_floatingpoint_type) }
+        Datatype(Ref::new(unsafe { jl_floatingpoint_type }))
     }
     pub fn bool() -> Datatype {
-        unsafe { Datatype::new_unchecked(jl_bool_type) }
+        Datatype(Ref::new(unsafe { jl_bool_type }))
     }
     pub fn char() -> Datatype {
-        unsafe { Datatype::new_unchecked(jl_char_type) }
+        Datatype(Ref::new(unsafe { jl_char_type }))
     }
     pub fn int8() -> Datatype {
-        unsafe { Datatype::new_unchecked(jl_int8_type) }
+        Datatype(Ref::new(unsafe { jl_int8_type }))
     }
     pub fn uint8() -> Datatype {
-        unsafe { Datatype::new_unchecked(jl_uint8_type) }
+        Datatype(Ref::new(unsafe { jl_uint8_type }))
     }
     pub fn int16() -> Datatype {
-        unsafe { Datatype::new_unchecked(jl_int16_type) }
+        Datatype(Ref::new(unsafe { jl_int16_type }))
     }
     pub fn uint16() -> Datatype {
-        unsafe { Datatype::new_unchecked(jl_uint16_type) }
+        Datatype(Ref::new(unsafe { jl_uint16_type }))
     }
     pub fn int32() -> Datatype {
-        unsafe { Datatype::new_unchecked(jl_int32_type) }
+        Datatype(Ref::new(unsafe { jl_int32_type }))
     }
     pub fn uint32() -> Datatype {
-        unsafe { Datatype::new_unchecked(jl_uint32_type) }
+        Datatype(Ref::new(unsafe { jl_uint32_type }))
     }
     pub fn int64() -> Datatype {
-        unsafe { Datatype::new_unchecked(jl_int64_type) }
+        Datatype(Ref::new(unsafe { jl_int64_type }))
     }
     pub fn uint64() -> Datatype {
-        unsafe { Datatype::new_unchecked(jl_uint64_type) }
+        Datatype(Ref::new(unsafe { jl_uint64_type }))
     }
     pub fn float16() -> Datatype {
-        unsafe { Datatype::new_unchecked(jl_float16_type) }
+        Datatype(Ref::new(unsafe { jl_float16_type }))
     }
     pub fn float32() -> Datatype {
-        unsafe { Datatype::new_unchecked(jl_float32_type) }
+        Datatype(Ref::new(unsafe { jl_float32_type }))
     }
     pub fn float64() -> Datatype {
-        unsafe { Datatype::new_unchecked(jl_float64_type) }
+        Datatype(Ref::new(unsafe { jl_float64_type }))
     }
     pub fn void() -> Datatype {
-        unsafe { Datatype::new_unchecked(jl_void_type) }
+        Datatype(Ref::new(unsafe { jl_void_type }))
     }
     pub fn complex() -> Datatype {
-        unsafe { Datatype::new_unchecked(jl_complex_type as *mut _) }
+        Datatype(Ref::new(unsafe { jl_complex_type }))
     }
     pub fn void_pointer() -> Datatype {
-        unsafe { Datatype::new_unchecked(jl_voidpointer_type) }
+        Datatype(Ref::new(unsafe { jl_voidpointer_type }))
     }
     pub fn pointer() -> Datatype {
-        unsafe { Datatype::new_unchecked(jl_pointer_type as *mut _) }
+        Datatype(Ref::new(unsafe { jl_pointer_type }))
     }
 }
 
@@ -318,9 +284,9 @@ impl Union {
         let n = vec.len();
         let ts_ptr = vec.as_mut_ptr();
 
-        let raw = unsafe { jl_type_union(ts_ptr as *mut *mut _, n) };
+        let raw = unsafe { jl_type_union(ts_ptr, n) };
         jl_catch!();
-        Union::new(raw as *mut _)
+        Ok(Union(Ref::new(raw)))
     }
 
     /// Get the union that is an intersection of two types.
@@ -328,9 +294,9 @@ impl Union {
         let a = a.lock()?;
         let b = b.lock()?;
 
-        let raw = unsafe { jl_type_intersection(a as *mut _, b as *mut _) };
+        let raw = unsafe { jl_type_intersection(a, b) };
         jl_catch!();
-        Union::new(raw as *mut _)
+        Ok(Union(Ref::new(raw)))
     }
 
     /// Check if the intersection of two unions is empty.
@@ -338,7 +304,7 @@ impl Union {
         let a = a.lock()?;
         let b = b.lock()?;
 
-        let p = unsafe { jl_has_empty_intersection(a as *mut _, b as *mut _) };
+        let p = unsafe { jl_has_empty_intersection(a, b) };
         jl_catch!();
         Ok(p != 0)
     }
@@ -347,13 +313,13 @@ impl Union {
 impl UnionAll {
     /// Instantiate a UnionAll into a more concrete type.
     /// Not guaranteed to be a concrete datatype.
-    pub fn instantiate(&self, p: &Value) -> Result<Type> {
+    pub fn instantiate(&self, p: &Ref) -> Result<Type> {
         let inner = self.lock()?;
         let p = p.lock()?;
 
         let raw = unsafe { jl_instantiate_unionall(inner, p) };
         jl_catch!();
-        Type::new(raw)
+        Ok(Type(Ref::new(raw)))
     }
 }
 
@@ -363,7 +329,7 @@ impl Tuple {
 
         let raw = unsafe { jl_apply_tuple_type(params) };
         jl_catch!();
-        Tuple::new(raw)
+        Ok(Tuple(Ref::new(raw)))
     }
 }
 
@@ -421,7 +387,7 @@ impl TypeBuilder {
                 jl_new_primitivetype(self.name as *mut _, self.supertype, self.params, self.nbits)
             };
             jl_catch!();
-            Datatype::new(raw)
+            Ok(Datatype(Ref::new(raw)))
         } else {
             let raw = unsafe {
                 jl_new_datatype(
@@ -436,7 +402,7 @@ impl TypeBuilder {
                 )
             };
             jl_catch!();
-            Datatype::new(raw)
+            Ok(Datatype(Ref::new(raw)))
         }
     }
 
@@ -449,7 +415,7 @@ impl TypeBuilder {
             return self;
         }
 
-        let name = name.unwrap().into_inner();
+        let name = name.unwrap().lock();
 
         self.name = match name {
             Ok(name) => name,
@@ -634,13 +600,13 @@ macro_rules! jl_type {
                     .supertype(&$supertype)
                     .fnames(&jlvec![
                             $(
-                                Value::from_value(
+                                Ref::from_value(
                                     stringify!($fname).into_symbol()?
                                 )?
                             ),*
                         ]?)
                     .ftypes(&jlvec![
-                            $( Value::from_value($ftype)? ),*
+                            $( Ref::from_value($ftype)? ),*
                         ]?)
                     .build()
             }
@@ -691,13 +657,13 @@ macro_rules! jl_type {
                     .supertype(&$supertype)
                     .fnames(&jlvec![
                             $(
-                                Value::from_value(
+                                Ref::from_value(
                                     stringify!($fname).into_symbol()?
                                 )?
                             ),*
                         ]?)
                     .ftypes(&jlvec![
-                            $( Value::from_value($ftype)? ),*
+                            $( Ref::from_value($ftype)? ),*
                         ]?)
                     .build()
             }

@@ -31,21 +31,23 @@ macro_rules! jl_catch {
 }
 
 #[macro_use]
-pub mod value;
+pub mod reference;
 #[macro_use]
 pub mod array;
 pub mod function;
 pub mod sym;
+pub mod expr;
 pub mod module;
 pub mod datatype;
 pub mod task;
 pub mod exception;
 pub mod primitive;
 
-pub use self::value::{Value, JlValue};
-pub use self::array::{Array, Svec};
+pub use self::reference::Ref;
+pub use self::array::{Array, ByteArray, Svec};
 pub use self::function::Function;
 pub use self::sym::{Symbol, IntoSymbol};
+pub use self::expr::Expr;
 pub use self::module::Module;
 pub use self::datatype::Datatype;
 pub use self::task::Task;
@@ -111,7 +113,7 @@ impl Julia {
     /// This function is unsafe, because if any Julia operation is called, it
     /// will likely segfault. Also, the 4 jl_* modules might be null.
     ///
-    /// ## Panics
+    /// # Panics
     ///
     /// Panics if the Julia runtime was not previously initialized.
     pub unsafe fn new_unchecked() -> Julia {
@@ -119,10 +121,10 @@ impl Julia {
             panic!("Julia is not initialized");
         }
 
-        let main = Module::new_unchecked(jl_main_module);
-        let core = Module::new_unchecked(jl_core_module);
-        let base = Module::new_unchecked(jl_base_module);
-        let top = Module::new_unchecked(jl_top_module);
+        let main = Module(Ref::new(jl_main_module));
+        let core = Module(Ref::new(jl_core_module));
+        let base = Module(Ref::new(jl_base_module));
+        let top = Module(Ref::new(jl_top_module));
 
         Julia {
             main: main,
@@ -136,7 +138,7 @@ impl Julia {
 
     /// Initialize the Julia runtime.
     ///
-    /// ## Errors
+    /// # Errors
     ///
     /// Returns Error::JuliaInitialized if Julia is already initialized.
     pub fn new() -> Result<Julia> {
@@ -229,31 +231,30 @@ impl Julia {
     }
 
     /// Loads a Julia script from any Read without evaluating it.
-    pub fn load<R: Read, S: IntoCString>(&mut self, r: &mut R, name: Option<S>) -> Result<Value> {
+    pub fn load<R: Read, S: IntoCString>(&mut self, r: &mut R, name: Option<S>) -> Result<Ref> {
         let mut content = String::new();
         let len = r.read_to_string(&mut content)?;
         let content = content.into_cstring();
         let content = content.as_ptr();
 
         let name = name.map(|s| s.into_cstring()).unwrap_or_else(
-            || "string".into_cstring(),
+            || "unnamed.jl".into_cstring(),
         );
         let name = name.as_ptr();
 
-        //let raw = unsafe { jl_load_file_string(content, len, ptr::null::<i8>() as *mut _) };
-        let raw = unsafe { jl_load_file_string(content, len, name as *mut _) };
+        let raw = unsafe { jl_load_file_string(content as *mut _, len, name as *mut _) };
         jl_catch!();
-        Value::new(raw)
+        Ok(Ref::new(raw))
     }
 
     /// Parses and evaluates string.
-    pub fn eval_string<S: IntoCString>(&mut self, string: S) -> Result<Value> {
+    pub fn eval_string<S: IntoCString>(&mut self, string: S) -> Result<Ref> {
         let string = string.into_cstring();
         let string = string.as_ptr();
 
         let ret = unsafe { jl_eval_string(string) };
         jl_catch!();
-        Value::new(ret).map_err(|_| Error::EvalError)
+        Ok(Ref::new(ret))
     }
 }
 
