@@ -165,9 +165,10 @@ macro_rules! jlvec {
     [$elem:expr] => {
         {
             fn svec() -> $crate::error::Result<$crate::api::Svec> {
-                let elem = $crate::api::Ref::from($elem).into_inner()?;
+                use $crate::api::ToJulia;
+                let elem = $elem.to_julia()?;
                 let raw = unsafe {
-                    $crate::sys::jl_svec1(elem)
+                    $crate::sys::jl_svec1(elem.lock()?)
                 };
                 jl_catch!();
                 Ok($crate::api::Svec($crate::api::Ref::new(raw)))
@@ -179,10 +180,11 @@ macro_rules! jlvec {
     [$elem1:expr, $elem2:expr] => {
         {
             fn svec() -> $crate::error::Result<$crate::api::Svec> {
-                let elem1 = $crate::api::Ref::from($elem1).into_inner()?;
-                let elem2 = $crate::api::Ref::from($elem2).into_inner()?;
+                use $crate::api::ToJulia;
+                let elem1 = $elem1.to_julia()?;
+                let elem2 = $elem2.to_julia()?;
                 let raw = unsafe {
-                    $crate::sys::jl_svec2(elem1, elem2)
+                    $crate::sys::jl_svec2(elem1.lock()?, elem2.lock()?)
                 };
                 jl_catch!();
                 Ok($crate::api::Svec($crate::api::Ref::new(raw)))
@@ -204,10 +206,11 @@ macro_rules! jlvec {
             }
 
             fn svec(count: usize) -> $crate::error::Result<$crate::api::Svec> {
+                use $crate::api::ToJulia;
                 let raw = unsafe {
                     $crate::sys::jl_svec(count,
                                          $(
-                                             $crate::api::Ref::from($elem).into_inner()?
+                                             $elem.to_julia()?.lock()? as *mut $crate::sys::jl_value_t
                                          ),+
                                          )
                 };
@@ -221,9 +224,10 @@ macro_rules! jlvec {
     [$elem:expr; $n:expr] => {
         {
             fn svec() -> $crate::error::Result<$crate::api::Svec> {
-                let elem = $crate::api::Ref::from($elem).into_inner()?;
+                use $crate::api::ToJulia;
+                let elem = $elem.to_julia()?;
                 let raw = unsafe {
-                    $crate::sys::jl_svec_fill($n, elem)
+                    $crate::sys::jl_svec_fill($n, elem.lock()?)
                 };
                 jl_catch!();
                 Ok($crate::api::Svec($crate::api::Ref::new(raw)))
