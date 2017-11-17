@@ -81,7 +81,11 @@ impl Exception {
         unsafe {
             jl_exception_clear();
         }
-        Exception::with_value(Ref::new(raw)).ok()
+        if raw.is_null() {
+            None
+        } else {
+            Exception::with_value(Ref::new(raw)).ok()
+        }
     }
 
     // TODO: replace comparing typename with comparing a *mut jl_datatype_t.
