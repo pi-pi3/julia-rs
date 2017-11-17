@@ -460,6 +460,20 @@ impl Ref {
     }
 }
 
+impl ToJulia for Ref {
+    type Error = Error;
+    fn to_julia(self) -> Result<Ref> {
+        Ok(self)
+    }
+}
+
+impl FromJulia for Ref {
+    type Error = Error;
+    fn from_julia(jl_ref: &Ref) -> Result<Ref> {
+        Ok(jl_ref.clone())
+    }
+}
+
 impl Default for Ref {
     fn default() -> Ref {
         Ref::nothing()
@@ -517,6 +531,18 @@ macro_rules! wrap_ref {
         impl ::std::ops::DerefMut for $name {
             fn deref_mut(&mut self) -> &mut $crate::api::Ref {
                 &mut self.0
+            }
+        }
+
+        impl ::std::fmt::Debug for $name {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                write!(f, "{:?}", *self)
+            }
+        }
+
+        impl ::std::fmt::Display for $name {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                write!(f, "{}", *self)
             }
         }
     };
