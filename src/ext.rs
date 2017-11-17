@@ -102,7 +102,7 @@ macro_rules! extern_jl {
                 }
             }
 
-            pub fn decl(self, jl: &mut $crate::api::Julia) -> $crate::error::Result<$crate::api::Value> {
+            pub fn decl(self, jl: &mut $crate::api::Julia) -> $crate::error::Result<$crate::api::Ref> {
                 let mut decl = String::new();
 
                 $(
