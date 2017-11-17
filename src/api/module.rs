@@ -2,7 +2,7 @@
 //! Module providing a wrapper for the native Julia module object.
 
 use sys::*;
-use error::Result;
+use error::{Result, Error};
 use super::{Ref, Function, IntoSymbol};
 
 wrap_ref! { pub struct Module(Ref); }
@@ -15,7 +15,11 @@ impl Module {
         let sym = sym.lock()?;
         let raw = unsafe { jl_get_global(module, sym) };
         jl_catch!();
-        Ok(Ref::new(raw))
+        if raw.is_null() {
+            Err(Error::NullPointer)
+        } else {
+            Ok(Ref::new(raw))
+        }
     }
 
     /// Returns a function bound to the symbol `sym`.
