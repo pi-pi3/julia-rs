@@ -44,7 +44,7 @@ use liner::{Context, History, KeyBindings};
 use colored::*;
 use clap::{Arg, App};
 
-use julia::api::{Julia, Value};
+use julia::api::{Julia, Ref};
 use julia::error::Error;
 use julia::version;
 
@@ -107,32 +107,16 @@ fn greet(jl: &Julia) {
     );
 }
 
-fn set_history(jl: &mut Julia, ret: &Value) -> Result<(), usize> {
-    let ans = jl.main().global("ans").unwrap_or_else(|_| Value::nothing());
-    let ans1 = jl.main().global("ans1").unwrap_or_else(
-        |_| Value::nothing(),
-    );
-    let ans2 = jl.main().global("ans2").unwrap_or_else(
-        |_| Value::nothing(),
-    );
-    let ans3 = jl.main().global("ans3").unwrap_or_else(
-        |_| Value::nothing(),
-    );
-    let ans4 = jl.main().global("ans4").unwrap_or_else(
-        |_| Value::nothing(),
-    );
-    let ans5 = jl.main().global("ans5").unwrap_or_else(
-        |_| Value::nothing(),
-    );
-    let ans6 = jl.main().global("ans6").unwrap_or_else(
-        |_| Value::nothing(),
-    );
-    let ans7 = jl.main().global("ans7").unwrap_or_else(
-        |_| Value::nothing(),
-    );
-    let ans8 = jl.main().global("ans8").unwrap_or_else(
-        |_| Value::nothing(),
-    );
+fn set_history(jl: &mut Julia, ret: &Ref) -> Result<(), usize> {
+    let ans = jl.main().global("ans").unwrap_or_else(|_| Ref::nothing());
+    let ans1 = jl.main().global("ans1").unwrap_or_else(|_| Ref::nothing());
+    let ans2 = jl.main().global("ans2").unwrap_or_else(|_| Ref::nothing());
+    let ans3 = jl.main().global("ans3").unwrap_or_else(|_| Ref::nothing());
+    let ans4 = jl.main().global("ans4").unwrap_or_else(|_| Ref::nothing());
+    let ans5 = jl.main().global("ans5").unwrap_or_else(|_| Ref::nothing());
+    let ans6 = jl.main().global("ans6").unwrap_or_else(|_| Ref::nothing());
+    let ans7 = jl.main().global("ans7").unwrap_or_else(|_| Ref::nothing());
+    let ans8 = jl.main().global("ans8").unwrap_or_else(|_| Ref::nothing());
     jl.main().set("ans", ret).map_err(|_| 0_usize)?;
     jl.main().set("ans1", &ans).map_err(|_| 1_usize)?;
     jl.main().set("ans2", &ans1).map_err(|_| 2_usize)?;
@@ -146,7 +130,7 @@ fn set_history(jl: &mut Julia, ret: &Value) -> Result<(), usize> {
     Ok(())
 }
 
-fn eval_string(jl: &mut Julia, expr: &str) -> Option<Value> {
+fn eval_string(jl: &mut Julia, expr: &str) -> Option<Ref> {
     let ret = jl.eval_string(expr);
 
     let ret = match ret {
