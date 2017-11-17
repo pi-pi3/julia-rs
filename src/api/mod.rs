@@ -43,7 +43,7 @@ pub mod task;
 pub mod exception;
 pub mod primitive;
 
-pub use self::reference::Ref;
+pub use self::reference::{Ref, ToJulia, FromJulia};
 pub use self::array::{Array, ByteArray, Svec};
 pub use self::function::Function;
 pub use self::sym::{Symbol, IntoSymbol};
