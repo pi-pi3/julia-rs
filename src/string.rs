@@ -79,6 +79,13 @@ impl TryIntoString for *const c_char {
     }
 }
 
+impl TryIntoString for *mut c_char {
+    type Error = Error;
+    fn try_into_string(self) -> Result<String, Error> {
+        (self as *const c_char).try_into_string()
+    }
+}
+
 impl<'a> TryIntoString for &'a CStr {
     type Error = Error;
     fn try_into_string(self) -> Result<String, Error> {
