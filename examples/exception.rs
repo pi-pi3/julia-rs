@@ -1,14 +1,10 @@
 
-#![feature(try_from)]
-
 extern crate julia;
 
-use std::convert::TryFrom;
-
 use julia::error::Result;
-use julia::api::{Julia, Value};
+use julia::api::{Julia, Ref, FromJulia};
 
-fn func() -> Result<Vec<Value>> {
+fn func() -> Result<Vec<Ref>> {
     let mut jl = Julia::new()?;
 
     let mut results = vec![];
@@ -26,7 +22,7 @@ fn main() {
         Ok(vals) => {
             println!("Everything went fine!");
             for val in vals {
-                println!("{}", f64::try_from(&val).unwrap());
+                println!("{}", f64::from_julia(&val).unwrap());
             }
         }
         Err(err) => println!("Error: {:?}", err),

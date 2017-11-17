@@ -3,7 +3,7 @@ extern crate julia;
 
 use std::io::{self, Write};
 
-use julia::api::{Julia, Value};
+use julia::api::{Julia, Ref};
 
 fn main() {
     let mut jl = Julia::new().unwrap();
@@ -19,7 +19,7 @@ fn main() {
 
         let ret = jl.eval_string(&input).unwrap_or_else(|_| {
             println!("invalid expression");
-            Value::nothing()
+            Ref::nothing()
         });
 
         if !ret.is_nothing() {

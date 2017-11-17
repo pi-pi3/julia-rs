@@ -1,11 +1,7 @@
 
-#![feature(try_from)]
-
 extern crate julia;
 
-use std::convert::TryFrom;
-
-use julia::api::{Julia, Value};
+use julia::api::{Julia, ToJulia, FromJulia};
 
 fn main() {
     let jl = Julia::new().unwrap();
@@ -13,10 +9,9 @@ fn main() {
     let sqrt = jl.base().function("sqrt").unwrap();
     let x = 3.0;
     let y = {
-        let x = Value::from(x);
-        sqrt.call1(&x).unwrap()
+        sqrt.call1(&x.to_julia().unwrap()).unwrap()
     };
-    let y = f64::try_from(&y).unwrap();
+    let y = f64::from_julia(&y).unwrap();
 
     println!("sqrt({}) = {}", x, y);
 }
