@@ -9,7 +9,7 @@ use std::result::Result as StdResult;
 use sys::*;
 use error::{Result, Error};
 use string::{IntoCString, TryIntoString};
-use api::{Void, Pointer, Datatype, Function, IntoSymbol};
+use api::{Void, Pointer, Datatype, Function, IntoSymbol, Exception};
 
 pub trait ToJulia {
     type Error;
@@ -90,7 +90,6 @@ impl Ref {
         unsafe {
             jl_gc_add_finalizer(raw, f);
         }
-        jl_catch!();
         Ok(())
     }
 
@@ -101,7 +100,6 @@ impl Ref {
         unsafe {
             jl_finalize(raw);
         }
-        jl_catch!();
         Ok(())
     }
 
@@ -127,18 +125,20 @@ impl Ref {
         let field = field.lock()?;
         let dt = self.datatype()?;
         let dt = dt.lock()?;
-        let idx = unsafe { jl_field_index(dt, field, -1) };
-        jl_catch!();
+        let idx = except! {
+            try {
+                unsafe {
+                    jl_field_index(dt, field, 1)
+                }
+            } catch Exception::Error(ex) => {
+                rethrow!(Exception::Error(ex))
+            }
+        };
 
-        if idx.is_negative() {
-            return Err(Error::InvalidSymbol);
-        }
         let idx = idx as usize;
-
         let raw = self.lock()?;
 
         let value = unsafe { jl_get_nth_field(raw, idx) };
-        jl_catch!();
         Ok(Ref::new(value))
     }
 
@@ -148,19 +148,21 @@ impl Ref {
         let field = field.lock()?;
         let dt = self.datatype()?;
         let dt = dt.lock()?;
-        let idx = unsafe { jl_field_index(dt, field, -1) };
-        jl_catch!();
+        let idx = except! {
+            try {
+                unsafe {
+                    jl_field_index(dt, field, 1)
+                }
+            } catch Exception::Error(ex) => {
+                rethrow!(Exception::Error(ex))
+            }
+        };
 
-        if idx.is_negative() {
-            return Err(Error::InvalidSymbol);
-        }
         let idx = idx as usize;
-
         let raw = self.lock()?;
         let value = value.lock()?;
 
         unsafe { jl_set_nth_field(raw, idx, value) };
-        jl_catch!();
         Ok(())
     }
 
@@ -601,7 +603,6 @@ macro_rules! impl_from_julia {
 
                 if is_type {
                     let $v = unsafe { concat_idents!(jl_unbox_, $t1)(raw as *mut _) };
-                    jl_catch!();
                     Ok($fn)
                 } else {
                     Err(Error::InvalidUnbox)
@@ -660,7 +661,6 @@ impl FromJulia for String {
         if jl_ref.is_string() {
             let raw = jl_ref.lock()?;
             let ptr = unsafe { jl_string_ptr(raw) };
-            jl_catch!();
 
             Ok(ptr.try_into_string().unwrap())
         } else {

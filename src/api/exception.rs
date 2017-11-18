@@ -69,6 +69,26 @@ pub enum Exception {
 }
 
 impl Exception {
+    pub fn throw(&self) -> Result<()> {
+        let raw = self.inner_ref().lock()?;
+
+        unsafe {
+            jl_throw(raw);
+        }
+
+        Ok(())
+    }
+
+    pub fn rethrow(&self) -> Result<()> {
+        let raw = self.inner_ref().lock()?;
+
+        unsafe {
+            jl_rethrow_other(raw);
+        }
+
+        Ok(())
+    }
+
     /// Check if an exception occurred without checking its value.
     pub fn occurred() -> bool {
         unsafe { !jl_exception_occurred().is_null() }

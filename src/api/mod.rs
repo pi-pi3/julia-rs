@@ -5,7 +5,7 @@ use std::io::Read;
 use std::ffi::CStr;
 
 use sys::*;
-use error::{Result, Error};
+use error::Result;
 use version::Version;
 use string::IntoCString;
 
@@ -19,7 +19,7 @@ use string::IntoCString;
 ///     let result = try {
 ///         might_throw();
 ///         Ok(())
-///     } catch ex {
+///     } catch ex => {
 ///         Err(ex)
 ///     };
 /// }
@@ -29,10 +29,10 @@ use string::IntoCString;
 /// except! {
 ///     let x = try {
 ///         might_throw();
-///     } catch ex: Exception::Bounds {
+///     } catch Exception::Bounds(ex) => {
 ///         eprintln!("Out of bounds: {:?}", ex);
 ///         return;
-///     } catch ex: Exception::Error {
+///     } catch Exception::Error(ex) => {
 ///         eprintln!("Generic error: {:?}", ex);
 ///         return;
 ///     } finally {
@@ -46,38 +46,51 @@ macro_rules! except {
     {
         try $try:block
     } => {
-        $body
+        {
+            let try_val = $try;
+            if let Some(ex) = $crate::api::Exception::catch() {
+                panic!("unhandled exception\n > {:?}\n >> {}", ex, ex.description())
+            }
+            try_val
+        }
     };
     {
         try $try:block
         finally $finally:block
     } => {
         {
-            $body;
+            $try;
+            if let Some(ex) = $crate::api::Exception::catch() {
+                panic!("unhandled exception\n > {:?}\n >> {}", ex, ex.description())
+            }
             $finally
         }
     };
     {
         try $try:block
-        $( catch $ex:ident : $extype:ty $catch:block )*
+        $( catch $ex:pat => $catch:block )*
     } => {
         {
-            let body_val = $body;
+            use std::error::Error as ErrorTrait;
+            let try_val = $try;
+            #[allow(unreachable_patterns)]
             match $crate::api::Exception::catch() {
-                None => body_val,
+                None => try_val,
                 $(
-                    Some($extype($ex)) => $catch,
+                    Some($ex) => $catch,
                 )*
-                Some(_) => body_val,
+                Some(ex) => panic!("unhandled exception\n > {:?}\n >> {}", ex, ex.description()),
             }
         }
     };
     {
         try $try:block
-        $( catch $ex:ident : $extype:ty $catch:block )*
+        $( catch $ex:pat => $catch:block )*
         finally $finally:block
     } => {
         {
+            use std::error::Error as ErrorTrait;
+
             struct Finally;
 
             impl Drop for Finally {
@@ -88,52 +101,14 @@ macro_rules! except {
 
             let _finally = Finally;
 
-            $body;
+            $try;
+            #[allow(unreachable_patterns)]
             match $crate::api::Exception::catch() {
+                None => (),
                 $(
-                    Some($extype($ex)) => { $catch; },
+                    Some($ex) => { $catch; },
                 )*
-                _ => (),
-            }
-
-            // It's alright to forget `finally`, because it's zero-sized.
-            ::std::mem::forget(_finally);
-
-            $finally
-        }
-    };
-    {
-        try $try:block
-        catch $ex:ident $catch:block
-    } => {
-        {
-            let body_val = $body;
-            match $crate::api::Exception::catch() {
-                None => body_val,
-                Some($ex) => $catch,
-            }
-        }
-    };
-    {
-        try $try:block
-        catch $ex:ident $catch:block
-        finally $finally:block
-    } => {
-        {
-            struct Finally;
-
-            impl Drop for Finally {
-                fn drop(&mut self) {
-                    $finally;
-                }
-            }
-
-            let _finally = Finally;
-
-            $body;
-            match $crate::api::Exception::catch() {
-                Some($ex) => { $catch; },
-                _ => (),
+                Some(ex) => panic!("unhandled exception\n > {:?}\n >> {}", ex, ex.description()),
             }
 
             // It's alright to forget `finally`, because it's zero-sized.
@@ -147,26 +122,7 @@ macro_rules! except {
 /// Used to return a caught Julia exception as a Rust error.
 #[macro_export]
 macro_rules! rethrow {
-    ( $ex:expr ) => { return Err($ex); };
-    ( Ex($ex:expr) ) => { return Err($crate::error::Error::UnhandledException($ex)); }
-}
-
-/// This macro checks for exceptions that might have occurred in the sys::*
-/// functions. Should be used after calling any jl_* function that might throw
-/// an exception.
-#[macro_export]
-#[deprecated(since = "0.2.5", note = "use `except!` instead")]
-macro_rules! jl_catch {
-    () => {
-        jl_catch!(|ex| { ex });
-    };
-    (|$ex:ident| $body:expr) => {
-        jl_catch!(|$ex -> $crate::error::Error::UnhandledException| $crate::error::Error::UnhandledException($body));
-    };
-    (|$ex:ident -> $t:ty| $body:expr) => {
-        try { }
-        catch ex { rethrow!(ex) }
-    }
+    ( $ex:expr ) => { return Err($crate::error::Error::UnhandledException($ex)); }
 }
 
 #[macro_use]
@@ -198,12 +154,10 @@ pub struct Gc;
 
 impl Gc {
     /// Enable or disable the garbage collector.
-    pub fn enable(&mut self, p: bool) -> Result<()> {
+    pub fn enable(&mut self, p: bool) {
         unsafe {
             jl_gc_enable(p as i32);
         }
-        jl_catch!();
-        Ok(())
     }
 
     /// Check to see if gc is enabled.
@@ -213,12 +167,10 @@ impl Gc {
 
     /// Collect immediately. Set full to true if a full garbage collection
     /// should be issued
-    pub fn collect(&mut self, full: bool) -> Result<()> {
+    pub fn collect(&mut self, full: bool) {
         unsafe {
             jl_gc_collect(full as i32);
         }
-        jl_catch!();
-        Ok(())
     }
 
     /// Total bytes in use by the gc.
@@ -277,22 +229,22 @@ impl Julia {
 
     /// Initialize the Julia runtime.
     ///
-    /// # Errors
+    /// # Panics
     ///
-    /// Returns Error::JuliaInitialized if Julia is already initialized.
-    pub fn new() -> Result<Julia> {
+    /// Panics if Julia was already initialized somewhere else. Use
+    /// `Julia::new_unchecked` if you want to receive a handle to Julia anyway.
+    pub fn new() -> Julia {
         if Julia::is_initialized() {
-            return Err(Error::JuliaInitialized);
+            panic!("Julia was already initialized");
         }
 
         unsafe {
             jl_init();
         }
-        jl_catch!();
 
         let mut jl = unsafe { Julia::new_unchecked() };
         jl.at_exit = Some(0);
-        Ok(jl)
+        jl
     }
 
     /// Returns the version of currently running Julia runtime.
@@ -381,8 +333,15 @@ impl Julia {
         );
         let name = name.as_ptr();
 
-        let raw = unsafe { jl_load_file_string(content as *mut _, len, name as *mut _) };
-        jl_catch!();
+        let raw = except! {
+            try {
+                unsafe {
+                    jl_load_file_string(content as *mut _, len, name as *mut _)
+                }
+            } catch ex => {
+                rethrow!(ex)
+            }
+        };
         Ok(Ref::new(raw))
     }
 
@@ -391,8 +350,15 @@ impl Julia {
         let string = string.into_cstring();
         let string = string.as_ptr();
 
-        let ret = unsafe { jl_eval_string(string) };
-        jl_catch!();
+        let ret = except! {
+            try {
+                unsafe {
+                    jl_eval_string(string)
+                }
+            } catch ex => {
+                rethrow!(ex)
+            }
+        };
         Ok(Ref::new(ret))
     }
 }

@@ -14,7 +14,6 @@ impl Module {
         let sym = sym.into_symbol()?;
         let sym = sym.lock()?;
         let raw = unsafe { jl_get_global(module, sym) };
-        jl_catch!();
         if raw.is_null() {
             Err(Error::NullPointer)
         } else {
@@ -37,7 +36,6 @@ impl Module {
         unsafe {
             jl_set_global(module, sym, val);
         }
-        jl_catch!();
         Ok(())
     }
 
@@ -50,7 +48,6 @@ impl Module {
         unsafe {
             jl_set_const(module, sym, val);
         }
-        jl_catch!();
         Ok(())
     }
 }

@@ -7,7 +7,7 @@ use std::convert::TryFrom;
 
 use sys::*;
 use error::{Result, Error};
-use api::{Ref, IntoSymbol, Array, Svec};
+use api::{Ref, IntoSymbol, Array, Svec, Exception};
 
 #[derive(Clone, Copy, Hash, PartialEq, Debug)]
 pub enum VarargKind {
@@ -48,15 +48,25 @@ impl Type {
         }
 
         let dt = self.lock()?;
-        let array = unsafe { jl_alloc_array_1d(dt, paramv.len()) };
-        jl_catch!();
+        let array = except! {
+            try {
+                unsafe { jl_alloc_array_1d(dt, paramv.len()) }
+            } catch Exception::Error(ex) => {
+                rethrow!(Exception::Error(ex))
+            }
+        };
 
-        for (i, p) in paramv.into_iter().enumerate() {
-            unsafe {
-                jl_arrayset(array, p, i);
+        except! {
+            try { 
+                for (i, p) in paramv.into_iter().enumerate() {
+                    unsafe {
+                        jl_arrayset(array, p, i);
+                    }
+                }
+            } catch Exception::Type(ex) => {
+                rethrow!(Exception::Type(ex))
             }
         }
-        jl_catch!();
 
         Ok(Array(Ref::new(array)))
     }
@@ -73,8 +83,17 @@ impl Type {
         let paramv = paramv.as_mut_ptr();
 
         let tc = self.lock()?;
-        let raw = unsafe { jl_apply_type(tc, paramv, nparam) };
-        jl_catch!();
+        let raw = except! {
+            try {
+                unsafe {
+                    jl_apply_type(tc, paramv, nparam)
+                }
+            } catch Exception::Error(ex) => {
+                rethrow!(Exception::Error(ex))
+            } catch Exception::Type(ex) => {
+                rethrow!(Exception::Type(ex))
+            }
+        };
         Ok(Type(Ref::new(raw)))
     }
 
@@ -82,8 +101,17 @@ impl Type {
         let tc = self.lock()?;
         let p1 = p1.lock()?;
 
-        let raw = unsafe { jl_apply_type1(tc, p1) };
-        jl_catch!();
+        let raw = except! {
+            try {
+                unsafe {
+                    jl_apply_type1(tc, p1)
+                }
+            } catch Exception::Error(ex) => {
+                rethrow!(Exception::Error(ex))
+            } catch Exception::Type(ex) => {
+                rethrow!(Exception::Type(ex))
+            }
+        };
         Ok(Type(Ref::new(raw)))
     }
 
@@ -92,8 +120,17 @@ impl Type {
         let p1 = p1.lock()?;
         let p2 = p2.lock()?;
 
-        let raw = unsafe { jl_apply_type2(tc, p1, p2) };
-        jl_catch!();
+        let raw = except! {
+            try {
+                unsafe {
+                    jl_apply_type2(tc, p1, p2)
+                }
+            } catch Exception::Error(ex) => {
+                rethrow!(Exception::Error(ex))
+            } catch Exception::Type(ex) => {
+                rethrow!(Exception::Type(ex))
+            }
+        };
         Ok(Type(Ref::new(raw)))
     }
 
@@ -184,8 +221,15 @@ impl Datatype {
         let paramv = paramv.as_mut_ptr();
 
         let dt = self.lock()?;
-        let value = unsafe { jl_new_structv(dt, paramv, nparam as u32) };
-        jl_catch!();
+        let value = except! {
+            try {
+                unsafe {
+                    jl_new_structv(dt, paramv, nparam as u32)
+                }
+            } catch Exception::Type(ex) => {
+                rethrow!(Exception::Type(ex))
+            }
+        };
         Ok(Ref::new(value))
     }
 
@@ -196,7 +240,6 @@ impl Datatype {
 
         let dt = self.lock()?;
         let value = unsafe { jl_new_bits(dt, bits as *mut _) };
-        jl_catch!();
         Ok(Ref::new(value))
     }
 
@@ -284,8 +327,13 @@ impl Union {
         let n = vec.len();
         let ts_ptr = vec.as_mut_ptr();
 
-        let raw = unsafe { jl_type_union(ts_ptr, n) };
-        jl_catch!();
+        let raw = except! {
+            try {
+                unsafe { jl_type_union(ts_ptr, n) }
+            } catch Exception::Type(ex) => {
+                rethrow!(Exception::Type(ex))
+            }
+        };
         Ok(Union(Ref::new(raw)))
     }
 
@@ -294,8 +342,13 @@ impl Union {
         let a = a.lock()?;
         let b = b.lock()?;
 
-        let raw = unsafe { jl_type_intersection(a, b) };
-        jl_catch!();
+        let raw = except! {
+            try {
+                unsafe { jl_type_intersection(a, b) }
+            } catch Exception::Type(ex) => {
+                rethrow!(Exception::Type(ex))
+            }
+        };
         Ok(Union(Ref::new(raw)))
     }
 
@@ -305,7 +358,6 @@ impl Union {
         let b = b.lock()?;
 
         let p = unsafe { jl_has_empty_intersection(a, b) };
-        jl_catch!();
         Ok(p != 0)
     }
 }
@@ -317,8 +369,15 @@ impl UnionAll {
         let inner = self.lock()?;
         let p = p.lock()?;
 
-        let raw = unsafe { jl_instantiate_unionall(inner, p) };
-        jl_catch!();
+        let raw = except! {
+            try {
+                unsafe { jl_instantiate_unionall(inner, p) }
+            } catch Exception::Error(ex) => {
+                rethrow!(Exception::Error(ex))
+            } catch Exception::Type(ex) => {
+                rethrow!(Exception::Type(ex))
+            }
+        };
         Ok(Type(Ref::new(raw)))
     }
 }
@@ -327,8 +386,15 @@ impl Tuple {
     pub fn apply(params: &Svec) -> Result<Tuple> {
         let params = params.lock()?;
 
-        let raw = unsafe { jl_apply_tuple_type(params) };
-        jl_catch!();
+        let raw = except! {
+            try {
+                unsafe { jl_apply_tuple_type(params) }
+            } catch Exception::Error(ex) => {
+                rethrow!(Exception::Error(ex))
+            } catch Exception::Type(ex) => {
+                rethrow!(Exception::Type(ex))
+            }
+        };
         Ok(Tuple(Ref::new(raw)))
     }
 }
@@ -386,22 +452,26 @@ impl TypeBuilder {
             let raw = unsafe {
                 jl_new_primitivetype(self.name as *mut _, self.supertype, self.params, self.nbits)
             };
-            jl_catch!();
             Ok(Datatype(Ref::new(raw)))
         } else {
-            let raw = unsafe {
-                jl_new_datatype(
-                    self.name,
-                    self.supertype,
-                    self.params,
-                    self.fnames,
-                    self.ftypes,
-                    self.abstrac as i32,
-                    self.mutable as i32,
-                    self.ninitialized as i32,
-                )
+            let raw = except! {
+                try {
+                    unsafe {
+                        jl_new_datatype(
+                            self.name,
+                            self.supertype,
+                            self.params,
+                            self.fnames,
+                            self.ftypes,
+                            self.abstrac as i32,
+                            self.mutable as i32,
+                            self.ninitialized as i32,
+                        )
+                    }
+                } catch Exception::Error(ex) => {
+                    rethrow!(Exception::Error(ex))
+                }
             };
-            jl_catch!();
             Ok(Datatype(Ref::new(raw)))
         }
     }

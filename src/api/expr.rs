@@ -16,8 +16,13 @@ impl Expr {
         let string = string.into_cstring();
         let string = string.as_ptr();
 
-        let raw = unsafe { jl_parse_string(string, len, 0, 0) };
-        jl_catch!();
+        let raw = except! {
+            try {
+                unsafe { jl_parse_string(string, len, 0, 0) }
+            } catch ex => {
+                rethrow!(ex)
+            }
+        };
 
         Ok(Expr(Ref::new(raw)))
     }
@@ -25,8 +30,13 @@ impl Expr {
     /// Evaluate expression.
     pub fn expand(&self) -> Result<Ref> {
         let raw = self.lock()?;
-        let raw = unsafe { jl_expand(raw) };
-        jl_catch!();
+        let raw = except! {
+            try {
+                unsafe { jl_expand(raw) }
+            } catch ex => {
+                rethrow!(ex)
+            }
+        };
         Ok(Ref::new(raw))
     }
 }

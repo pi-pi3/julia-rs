@@ -272,13 +272,7 @@ fn main() {
     let repl = matches.is_present("repl");
     let quiet = matches.is_present("quiet");
 
-    let mut jl = match Julia::new() {
-        Ok(jl) => jl,
-        Err(err) => {
-            errprintln!("An error occurred while initializing Julia:\n{}", err);
-            return;
-        }
-    };
+    let mut jl = Julia::new();
 
     let mut repl_default = true;
 

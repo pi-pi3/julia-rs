@@ -20,7 +20,6 @@ impl Symbol {
     pub fn with_name<S: IntoCString>(name: S) -> Result<Symbol> {
         let name = name.into_cstring();
         let raw = unsafe { jl_symbol(name.as_ptr()) };
-        jl_catch!();
         let sym = Symbol(Ref::new(raw));
         Ok(sym)
     }
@@ -56,7 +55,6 @@ impl<'a> TryFrom<&'a Symbol> for String {
     type Error = Error;
     fn try_from(sym: &Symbol) -> Result<String> {
         let ptr = unsafe { jl_symbol_name(sym.lock()?) };
-        jl_catch!();
         Ok(ptr.try_into_string().unwrap())
     }
 }

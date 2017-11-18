@@ -155,7 +155,6 @@ macro_rules! jlvec {
         {
             fn svec() -> $crate::error::Result<$crate::api::Svec> {
                 let raw = unsafe { $crate::sys::jl_svec(0) };
-                jl_catch!();
                 Ok($crate::api::Svec($crate::api::Ref::new(raw)))
             }
 
@@ -170,7 +169,6 @@ macro_rules! jlvec {
                 let raw = unsafe {
                     $crate::sys::jl_svec1(elem.lock()?)
                 };
-                jl_catch!();
                 Ok($crate::api::Svec($crate::api::Ref::new(raw)))
             }
 
@@ -186,7 +184,6 @@ macro_rules! jlvec {
                 let raw = unsafe {
                     $crate::sys::jl_svec2(elem1.lock()?, elem2.lock()?)
                 };
-                jl_catch!();
                 Ok($crate::api::Svec($crate::api::Ref::new(raw)))
             }
 
@@ -214,7 +211,6 @@ macro_rules! jlvec {
                                          ),+
                                          )
                 };
-                jl_catch!();
                 Ok($crate::api::Svec($crate::api::Ref::new(raw)))
             }
 
@@ -229,7 +225,6 @@ macro_rules! jlvec {
                 let raw = unsafe {
                     $crate::sys::jl_svec_fill($n, elem.lock()?)
                 };
-                jl_catch!();
                 Ok($crate::api::Svec($crate::api::Ref::new(raw)))
             }
 
