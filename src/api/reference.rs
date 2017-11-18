@@ -538,13 +538,15 @@ macro_rules! wrap_ref {
 
         impl ::std::fmt::Debug for $name {
             fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-                write!(f, "{:?}", *self)
+                use std::ops::Deref;
+                write!(f, "{:?}", self.deref())
             }
         }
 
         impl ::std::fmt::Display for $name {
             fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-                write!(f, "{}", *self)
+                use std::ops::Deref;
+                write!(f, "{}", self.deref())
             }
         }
     };
