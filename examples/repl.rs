@@ -6,7 +6,7 @@ use std::io::{self, Write};
 use julia::api::{Julia, Ref};
 
 fn main() {
-    let mut jl = Julia::new().unwrap();
+    let mut jl = Julia::new();
 
     let println = jl.base().function("println").unwrap();
 

@@ -5,7 +5,7 @@ use julia::error::Result;
 use julia::api::{Julia, Ref, FromJulia};
 
 fn func() -> Result<Vec<Ref>> {
-    let mut jl = Julia::new()?;
+    let mut jl = Julia::new();
 
     let mut results = vec![];
     // a couple exceptions that can occur in Julia

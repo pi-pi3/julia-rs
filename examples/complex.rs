@@ -4,7 +4,7 @@ extern crate julia;
 use julia::api::{Julia, ToJulia, FromJulia, Function};
 
 fn main() {
-    let mut jl = Julia::new().unwrap();
+    let mut jl = Julia::new();
 
     let result = jl.eval_string("f(x) = x * 2 - 1").unwrap();
     let f = Function(result);

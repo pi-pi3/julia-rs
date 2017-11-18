@@ -5,7 +5,7 @@ use julia::error::Error;
 use julia::api::{Julia, ToJulia, Exception};
 
 fn main() {
-    let mut jl = Julia::new().unwrap();
+    let mut jl = Julia::new();
 
     let x = 5.0.to_julia().unwrap();
     println!("typename(5.0) = {:?}", x.typename());

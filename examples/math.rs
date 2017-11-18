@@ -4,7 +4,7 @@ extern crate julia;
 use julia::api::{Julia, ToJulia, FromJulia};
 
 fn main() {
-    let jl = Julia::new().unwrap();
+    let jl = Julia::new();
 
     let sqrt = jl.base().function("sqrt").unwrap();
     let x = 3.0;
