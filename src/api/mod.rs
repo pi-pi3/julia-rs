@@ -9,10 +9,153 @@ use error::{Result, Error};
 use version::Version;
 use string::IntoCString;
 
+/// Used for ffi calls that might throw an exception. If an exception occurs, it
+/// can be handled gracefully or ignored.
+///
+/// # Examples
+///
+/// ```
+/// except! {
+///     let result = try {
+///         might_throw();
+///         Ok(())
+///     } catch ex {
+///         Err(ex)
+///     };
+/// }
+/// ```
+///
+/// ```
+/// except! {
+///     let x = try {
+///         might_throw();
+///     } catch ex: Exception::Bounds {
+///         eprintln!("Out of bounds: {:?}", ex);
+///         return;
+///     } catch ex: Exception::Error {
+///         eprintln!("Generic error: {:?}", ex);
+///         return;
+///     } finally {
+///         println!("Done");
+///         Ok(())
+///     };
+/// }
+/// ```
+#[macro_export]
+macro_rules! except {
+    {
+        try $try:block
+    } => {
+        $body
+    };
+    {
+        try $try:block
+        finally $finally:block
+    } => {
+        {
+            $body;
+            $finally
+        }
+    };
+    {
+        try $try:block
+        $( catch $ex:ident : $extype:ty $catch:block )*
+    } => {
+        {
+            let body_val = $body;
+            match $crate::api::Exception::catch() {
+                None => body_val,
+                $(
+                    Some($extype($ex)) => $catch,
+                )*
+                Some(_) => body_val,
+            }
+        }
+    };
+    {
+        try $try:block
+        $( catch $ex:ident : $extype:ty $catch:block )*
+        finally $finally:block
+    } => {
+        {
+            struct Finally;
+
+            impl Drop for Finally {
+                fn drop(&mut self) {
+                    $finally;
+                }
+            }
+
+            let _finally = Finally;
+
+            $body;
+            match $crate::api::Exception::catch() {
+                $(
+                    Some($extype($ex)) => { $catch; },
+                )*
+                _ => (),
+            }
+
+            // It's alright to forget `finally`, because it's zero-sized.
+            ::std::mem::forget(_finally);
+
+            $finally
+        }
+    };
+    {
+        try $try:block
+        catch $ex:ident $catch:block
+    } => {
+        {
+            let body_val = $body;
+            match $crate::api::Exception::catch() {
+                None => body_val,
+                Some($ex) => $catch,
+            }
+        }
+    };
+    {
+        try $try:block
+        catch $ex:ident $catch:block
+        finally $finally:block
+    } => {
+        {
+            struct Finally;
+
+            impl Drop for Finally {
+                fn drop(&mut self) {
+                    $finally;
+                }
+            }
+
+            let _finally = Finally;
+
+            $body;
+            match $crate::api::Exception::catch() {
+                Some($ex) => { $catch; },
+                _ => (),
+            }
+
+            // It's alright to forget `finally`, because it's zero-sized.
+            ::std::mem::forget(_finally);
+
+            $finally
+        }
+    };
+}
+
+/// Used to return a caught Julia exception as a Rust error.
+#[macro_export]
+macro_rules! rethrow {
+    ( $ex:expr ) => { return Err($ex); };
+    ( Ex($ex:expr) ) => { return Err($crate::error::Error::UnhandledException($ex)); }
+}
+
 /// This macro checks for exceptions that might have occurred in the sys::*
 /// functions. Should be used after calling any jl_* function that might throw
 /// an exception.
 #[macro_export]
+#[deprecated(since = "0.2.5", note = "use `except!` instead")]
 macro_rules! jl_catch {
     () => {
         jl_catch!(|ex| { ex });
@@ -21,12 +164,8 @@ macro_rules! jl_catch {
         jl_catch!(|$ex -> $crate::error::Error::UnhandledException| $crate::error::Error::UnhandledException($body));
     };
     (|$ex:ident -> $t:ty| $body:expr) => {
-        #[allow(unused_variables)] // this shouldn't be necessary
-        {
-            if let Some($ex) = $crate::api::Exception::catch() {
-                return Err($body);
-            }
-        }
+        try { }
+        catch ex { rethrow!(ex) }
     }
 }
 
