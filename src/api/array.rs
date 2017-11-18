@@ -126,10 +126,7 @@ impl Svec {
         let len = self.len()?;
         let ptr = unsafe { jl_svec_data(self.lock()?) };
         let slice = unsafe { slice::from_raw_parts(ptr, len) };
-        let vec = slice
-            .iter()
-            .map(|raw| Ref::new(*raw))
-            .collect();
+        let vec = slice.iter().map(|raw| Ref::new(*raw)).collect();
         Ok(vec)
     }
 

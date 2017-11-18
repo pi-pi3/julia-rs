@@ -29,9 +29,7 @@ pub struct Ref {
 impl Ref {
     /// Construct a new Ref from a raw pointer obtained from Julia.
     unsafe fn new_unchecked(inner: Pointer) -> Ref {
-        Ref {
-            inner: Rc::new(Mutex::new(Unique::new_unchecked(inner))),
-        }
+        Ref { inner: Rc::new(Mutex::new(Unique::new_unchecked(inner))) }
     }
 
     /// Construct a new Ref from a raw pointer obtained from Julia while
@@ -44,9 +42,7 @@ impl Ref {
         if inner.is_null() {
             panic!("cannot use a nul-pointer")
         } else {
-            unsafe {
-                Ref::new_unchecked(inner as Pointer)
-            }
+            unsafe { Ref::new_unchecked(inner as Pointer) }
         }
     }
 
@@ -125,7 +121,8 @@ impl Ref {
         let field = field.lock()?;
         let dt = self.datatype()?;
         let dt = dt.lock()?;
-        let idx = except! {
+        let idx =
+            except! {
             try {
                 unsafe {
                     jl_field_index(dt, field, 1)
@@ -148,7 +145,8 @@ impl Ref {
         let field = field.lock()?;
         let dt = self.datatype()?;
         let dt = dt.lock()?;
-        let idx = except! {
+        let idx =
+            except! {
             try {
                 unsafe {
                     jl_field_index(dt, field, 1)
@@ -499,10 +497,8 @@ impl fmt::Display for Ref {
 
         let jl_string = Function(Ref::new(jl_string));
 
-        let string = jl_string.call1(self)
-            .map_err(|_| fmt::Error)?;
-        let string = String::from_julia(&string)
-            .map_err(|_| fmt::Error)?;
+        let string = jl_string.call1(self).map_err(|_| fmt::Error)?;
+        let string = String::from_julia(&string).map_err(|_| fmt::Error)?;
 
         write!(f, "{}", string)
     }

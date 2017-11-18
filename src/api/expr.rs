@@ -16,7 +16,8 @@ impl Expr {
         let string = string.into_cstring();
         let string = string.as_ptr();
 
-        let raw = except! {
+        let raw =
+            except! {
             try {
                 unsafe { jl_parse_string(string, len, 0, 0) }
             } catch ex => {
@@ -30,7 +31,8 @@ impl Expr {
     /// Evaluate expression.
     pub fn expand(&self) -> Result<Ref> {
         let raw = self.lock()?;
-        let raw = except! {
+        let raw =
+            except! {
             try {
                 unsafe { jl_expand(raw) }
             } catch ex => {

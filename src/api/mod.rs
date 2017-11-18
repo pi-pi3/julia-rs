@@ -333,7 +333,8 @@ impl Julia {
         );
         let name = name.as_ptr();
 
-        let raw = except! {
+        let raw =
+            except! {
             try {
                 unsafe {
                     jl_load_file_string(content as *mut _, len, name as *mut _)
@@ -350,7 +351,8 @@ impl Julia {
         let string = string.into_cstring();
         let string = string.as_ptr();
 
-        let ret = except! {
+        let ret =
+            except! {
             try {
                 unsafe {
                     jl_eval_string(string)

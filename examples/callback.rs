@@ -27,7 +27,7 @@ pub extern "C" fn libsquare_decl() {
 /*
 
 dlname = "libsquare"
-push!(Libdl.DL_LOAD_PATH, "./") 
+push!(Libdl.DL_LOAD_PATH, "./")
 libsquare = Libdl.dlopen(dlname)
 
 ccall((:square_decl, :libsquare), Void, ())

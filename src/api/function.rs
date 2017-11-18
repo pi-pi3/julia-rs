@@ -22,7 +22,8 @@ impl Function {
 
         let raw = self.lock()?;
 
-        let ret = except! {
+        let ret =
+            except! {
             try {
                 unsafe { jl_call(raw, argv.as_mut_ptr(), argv.len() as i32) }
             } catch ex => {
@@ -36,7 +37,8 @@ impl Function {
     pub fn call0(&self) -> Result<Ref> {
         let raw = self.lock()?;
 
-        let ret = except! {
+        let ret =
+            except! {
             try {
                 unsafe { jl_call0(raw) }
             } catch ex => {
@@ -50,7 +52,8 @@ impl Function {
     pub fn call1(&self, arg1: &Ref) -> Result<Ref> {
         let raw = self.lock()?;
 
-        let ret = except! {
+        let ret =
+            except! {
             try {
                 unsafe { jl_call1(raw, arg1.lock()?) }
             } catch ex => {
@@ -64,7 +67,8 @@ impl Function {
     pub fn call2(&self, arg1: &Ref, arg2: &Ref) -> Result<Ref> {
         let raw = self.lock()?;
 
-        let ret = except! {
+        let ret =
+            except! {
             try {
                 unsafe { jl_call2(raw, arg1.lock()?, arg2.lock()?) }
             } catch ex => {
@@ -78,7 +82,8 @@ impl Function {
     pub fn call3(&self, arg1: &Ref, arg2: &Ref, arg3: &Ref) -> Result<Ref> {
         let raw = self.lock()?;
 
-        let ret = except! {
+        let ret =
+            except! {
             try {
                 unsafe { jl_call3(raw, arg1.lock()?, arg2.lock()?, arg3.lock()?) }
             } catch ex => {

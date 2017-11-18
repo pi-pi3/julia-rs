@@ -48,7 +48,8 @@ impl Type {
         }
 
         let dt = self.lock()?;
-        let array = except! {
+        let array =
+            except! {
             try {
                 unsafe { jl_alloc_array_1d(dt, paramv.len()) }
             } catch Exception::Error(ex) => {
@@ -57,7 +58,7 @@ impl Type {
         };
 
         except! {
-            try { 
+            try {
                 for (i, p) in paramv.into_iter().enumerate() {
                     unsafe {
                         jl_arrayset(array, p, i);
@@ -73,7 +74,7 @@ impl Type {
 
     pub fn apply_type<'a, I>(&self, params: I) -> Result<Type>
     where
-        I: IntoIterator<Item=&'a Ref>,
+        I: IntoIterator<Item = &'a Ref>,
     {
         let mut paramv = vec![];
         for p in params {
@@ -83,7 +84,8 @@ impl Type {
         let paramv = paramv.as_mut_ptr();
 
         let tc = self.lock()?;
-        let raw = except! {
+        let raw =
+            except! {
             try {
                 unsafe {
                     jl_apply_type(tc, paramv, nparam)
@@ -101,7 +103,8 @@ impl Type {
         let tc = self.lock()?;
         let p1 = p1.lock()?;
 
-        let raw = except! {
+        let raw =
+            except! {
             try {
                 unsafe {
                     jl_apply_type1(tc, p1)
@@ -120,7 +123,8 @@ impl Type {
         let p1 = p1.lock()?;
         let p2 = p2.lock()?;
 
-        let raw = except! {
+        let raw =
+            except! {
             try {
                 unsafe {
                     jl_apply_type2(tc, p1, p2)
@@ -211,7 +215,7 @@ impl Datatype {
     /// Creates a new Julia struct of this type.
     pub fn new_struct<'a, I>(&self, params: I) -> Result<Ref>
     where
-        I: IntoIterator<Item=&'a Ref>,
+        I: IntoIterator<Item = &'a Ref>,
     {
         let mut paramv = vec![];
         for p in params {
@@ -221,7 +225,8 @@ impl Datatype {
         let paramv = paramv.as_mut_ptr();
 
         let dt = self.lock()?;
-        let value = except! {
+        let value =
+            except! {
             try {
                 unsafe {
                     jl_new_structv(dt, paramv, nparam as u32)
@@ -318,7 +323,7 @@ impl Union {
     /// Create a union of types.
     pub fn union<'a, I>(ts: I) -> Result<Union>
     where
-        I: IntoIterator<Item=&'a Datatype>,
+        I: IntoIterator<Item = &'a Datatype>,
     {
         let mut vec = vec![];
         for t in ts {
@@ -327,7 +332,8 @@ impl Union {
         let n = vec.len();
         let ts_ptr = vec.as_mut_ptr();
 
-        let raw = except! {
+        let raw =
+            except! {
             try {
                 unsafe { jl_type_union(ts_ptr, n) }
             } catch Exception::Type(ex) => {
@@ -342,7 +348,8 @@ impl Union {
         let a = a.lock()?;
         let b = b.lock()?;
 
-        let raw = except! {
+        let raw =
+            except! {
             try {
                 unsafe { jl_type_intersection(a, b) }
             } catch Exception::Type(ex) => {
@@ -369,7 +376,8 @@ impl UnionAll {
         let inner = self.lock()?;
         let p = p.lock()?;
 
-        let raw = except! {
+        let raw =
+            except! {
             try {
                 unsafe { jl_instantiate_unionall(inner, p) }
             } catch Exception::Error(ex) => {
@@ -386,7 +394,8 @@ impl Tuple {
     pub fn apply(params: &Svec) -> Result<Tuple> {
         let params = params.lock()?;
 
-        let raw = except! {
+        let raw =
+            except! {
             try {
                 unsafe { jl_apply_tuple_type(params) }
             } catch Exception::Error(ex) => {
@@ -454,7 +463,8 @@ impl TypeBuilder {
             };
             Ok(Datatype(Ref::new(raw)))
         } else {
-            let raw = except! {
+            let raw =
+                except! {
                 try {
                     unsafe {
                         jl_new_datatype(

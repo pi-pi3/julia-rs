@@ -23,8 +23,7 @@ impl Module {
 
     /// Returns a function bound to the symbol `sym`.
     pub fn function<S: IntoSymbol>(&self, sym: S) -> Result<Function> {
-        self.global(sym.into_symbol()?)
-            .map(Function)
+        self.global(sym.into_symbol()?).map(Function)
     }
 
     /// Binds `value` to the symbol `sym` in this module.
