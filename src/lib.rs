@@ -33,9 +33,8 @@
 //! }
 //! ```
 
-#![feature(try_from)]
-#![feature(unique)]
 #![feature(concat_idents)]
+#![feature(ptr_internals)]
 
 #![allow(unknown_lints)]
 #![allow(not_unsafe_ptr_arg_deref)]

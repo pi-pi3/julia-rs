@@ -1,6 +1,8 @@
 [package]
 name = "julia"
-version = "0.2.5"
+version = "0.2.6"
+edition = "2015"
+
 authors = ["Szymon Walter <walter.szymon.98@gmail.com>"]
 license = "Zlib"
 readme = "README.md"
@@ -17,7 +19,7 @@ Idiomatic and safe Julia bindings for Rust
 libc = "0.2"
 smallvec = "0.5"
 colored = "1.6"
-liner = "0.4"
+redox_liner = "0.5.1"
 clap = "2.25"
 
 [dependencies.julia-sys]
@@ -27,3 +29,6 @@ path = "julia-sys"
 [[bin]]
 name = "julia-rs"
 path = "src/main.rs"
+
+[toolchain]
+channel = "nightly"
