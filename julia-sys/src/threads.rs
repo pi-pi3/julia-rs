@@ -1,5 +1,6 @@
 
 use std::intrinsics::*;
+use std::sync::atomic::*;
 
 use super::*;
 
@@ -24,52 +25,84 @@ pub unsafe fn jl_thread_self() -> u64 {
 }
 
 pub unsafe fn jl_signal_fence() {
-    atomic_fence();
+    fence(Ordering::AcqRel);
 }
 
-pub unsafe fn jl_atomic_fetch_add_relaxed<T>(obj: *mut T, arg: T) -> T {
+pub unsafe fn jl_atomic_fetch_add_relaxed<T>(obj: *mut T, arg: T) -> T
+where
+    T: Copy,
+{
     atomic_xadd_relaxed(obj, arg)
 }
 
-pub unsafe fn jl_atomic_fetch_add<T>(obj: *mut T, arg: T) -> T {
-    atomic_xadd(obj, arg)
+pub unsafe fn jl_atomic_fetch_add<T>(obj: *mut T, arg: T) -> T
+where
+    T: Copy,
+{
+    atomic_xadd_acqrel(obj, arg)
 }
 
-pub unsafe fn jl_atomic_fetch_and_relaxed<T>(obj: *mut T, arg: T) -> T {
+pub unsafe fn jl_atomic_fetch_and_relaxed<T>(obj: *mut T, arg: T) -> T
+where
+    T: Copy,
+{
     atomic_and_relaxed(obj, arg)
 }
 
-pub unsafe fn jl_atomic_fetch_and<T>(obj: *mut T, arg: T) -> T {
-    atomic_and(obj, arg)
+pub unsafe fn jl_atomic_fetch_and<T>(obj: *mut T, arg: T) -> T
+where
+    T: Copy,
+{
+    atomic_and_acqrel(obj, arg)
 }
 
-pub unsafe fn jl_atomic_fetch_or_relaxed<T>(obj: *mut T, arg: T) -> T {
+pub unsafe fn jl_atomic_fetch_or_relaxed<T>(obj: *mut T, arg: T) -> T
+where
+    T: Copy, {
     atomic_or_relaxed(obj, arg)
 }
 
-pub unsafe fn jl_atomic_fetch_or<T>(obj: *mut T, arg: T) -> T {
-    atomic_or(obj, arg)
+pub unsafe fn jl_atomic_fetch_or<T>(obj: *mut T, arg: T) -> T
+where
+    T: Copy,
+{
+    atomic_or_acqrel(obj, arg)
 }
 
-pub unsafe fn jl_atomic_compare_exchange<T>(obj: *mut T, expected: T, desired: T) -> T {
-    let (ret, _) = atomic_cxchg(obj, expected, desired);
+pub unsafe fn jl_atomic_compare_exchange<T>(obj: *mut T, expected: T, desired: T) -> T
+where
+    T: Copy,
+{
+    let (ret, _) = atomic_cxchg_acqrel_acquire(obj, expected, desired);
     ret
 }
 
-pub unsafe fn jl_atomic_store<T>(obj: *mut T, val: T) {
-    atomic_store(obj, val);
+pub unsafe fn jl_atomic_store<T>(obj: *mut T, val: T)
+where
+    T: Copy,
+{
+    atomic_store_release(obj, val);
 }
 
-pub unsafe fn jl_atomic_store_release<T>(obj: *mut T, val: T) {
-    atomic_store_rel(obj, val);
+pub unsafe fn jl_atomic_store_release<T>(obj: *mut T, val: T)
+where
+    T: Copy,
+{
+    atomic_store_relaxed(obj, val);
 }
 
-pub unsafe fn jl_atomic_load<T>(obj: *mut T) -> T {
-    atomic_load(obj)
+pub unsafe fn jl_atomic_load<T>(obj: *mut T) -> T
+where
+    T: Copy,
+{
+    atomic_load_acquire(obj)
 }
 
-pub unsafe fn jl_atomic_load_acquire<T>(obj: *mut T) -> T {
-    atomic_load_acq(obj)
+pub unsafe fn jl_atomic_load_acquire<T>(obj: *mut T) -> T
+where
+    T: Copy,
+{
+    atomic_load_acquire(obj)
 }
 
 #[allow(path_statements)]

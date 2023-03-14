@@ -27,20 +27,21 @@
 //! julia.rs> f(x) = 2x + pi
 //! ```
 
-#![feature(unicode)]
+// #![feature(unicode)]
 
 extern crate julia;
 extern crate colored;
 extern crate liner;
 extern crate clap;
-extern crate std_unicode;
+// extern crate std_unicode;
 
 use std::env;
 use std::fs::File;
 use std::io::ErrorKind;
-use std_unicode::str::UnicodeStr;
+use std::path::Path;
+// use std_unicode::str::UnicodeStr;
 
-use liner::{Context, History, KeyBindings};
+use liner::{Context, History, KeyBindings, BasicCompleter};
 use colored::*;
 use clap::{Arg, App};
 
@@ -164,30 +165,34 @@ fn eval_string(jl: &mut Julia, expr: &str) -> Option<Value> {
     if !ret.is_nothing() { Some(ret) } else { None }
 }
 
+fn is_whitespace(s: &String) -> bool {
+    s.chars().all(|c| c.is_whitespace())
+}
+
 fn interactive(mut jl: Julia, quiet: bool) {
     if !quiet {
         greet(&jl);
     }
 
     let home = env::var("HOME").unwrap();
-    let history_path = format!("{}/.julia-rs_history", home);
+    let history_path = format!("{}/.julia.rs_history", home);
+    let history_path = Path::new(&history_path);
     let mut history = History::new();
 
-    history.set_file_name(Some(history_path));
-    history.load_history().ok();
+    history.set_file_name_and_load_history(history_path);
 
     let mut con = Context {
         history: history,
-        completer: None,
+        buf: "".to_string(),
         word_divider_fn: Box::new(liner::get_buffer_words),
         key_bindings: KeyBindings::Emacs,
     };
     let ps1 = format!("{} ", "julia.rs>".bright_green().bold());
 
     loop {
-        let line = con.read_line(&*ps1, &mut |_| {});
+        let line = con.read_line(&*ps1, None, &mut BasicCompleter::new::<String>(vec![]));
         let line = match line {
-            Ok(ref line) if line.is_empty() || line.is_whitespace() => continue,
+            Ok(ref line) if line.is_empty() || is_whitespace(line) => continue,
             Ok(line) => line,
             Err(err) => {
                 match err.kind() {
@@ -217,7 +222,7 @@ fn interactive(mut jl: Julia, quiet: bool) {
     }
 
     let Context { mut history, .. } = con;
-    history.commit_history();
+    history.commit_to_file();
 }
 
 fn main() {

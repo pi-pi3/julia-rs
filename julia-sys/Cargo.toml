@@ -1,6 +1,7 @@
 [package]
 name = "julia-sys"
 version = "0.2.0"
+edition = "2015"
 authors = ["Szymon Walter <walter.szymon.98@gmail.com>"]
 license = "Zlib"
 keywords = ["julia", "lang", "scripting", "ffi", "sys"]
