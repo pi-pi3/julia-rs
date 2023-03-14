@@ -27,19 +27,16 @@
 //! julia.rs> f(x) = 2x + pi
 //! ```
 
-// #![feature(unicode)]
 
 extern crate julia;
 extern crate colored;
 extern crate liner;
 extern crate clap;
-// extern crate std_unicode;
 
 use std::env;
 use std::fs::File;
 use std::io::ErrorKind;
 use std::path::Path;
-// use std_unicode::str::UnicodeStr;
 
 use liner::{Context, History, KeyBindings, BasicCompleter};
 use colored::*;
